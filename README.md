@@ -6,7 +6,11 @@ Tyler Liddicoat (tliddico@ucsc.edu, github TLidd)
 Naum Markenzon (nmarkenz@ucsc.edu, github boomitsnoom)
 Mason Taylor (wimtaylo@ucsc.edu, github MTayLatte)
 
-Project proposal: https://docs.google.com/document/d/1NTo5ZZ4PjkuDcKHY03-F2TksJ7kiJx01hLWXHTVWCX0/edit?usp=drive_web&ouid=116127720773253109106
+Project proposal: https://docs.google.com/document/d/1NTo5ZZ4PjkuDcKHY03-F2TksJ7kiJx01hLWXHTVWCX0/edit?usp=sharing
+
+Project proposal slide:
+https://docs.google.com/presentation/d/1BHjaPnGs3KhQFIwac4AyyVObyA5GWYT3aGt-ySMofcg/edit?usp=sharing
+
 
 Notes to devs -
 
@@ -21,9 +25,12 @@ I highly, highly 10/10 recommend using Visual Studio Code, especially for this p
 
 For a few resources on JS/TS:
 https://nodejs.org/en/docs/ for node js documentation
+
 https://developer.mozilla.org/en-US/docs/Web/JavaScript for browser js documentation
+
 https://www.typescriptlang.org/docs/ for typescript documentation
-Of course, google yields all of these results, but if you're just starting out with JS or TS might be worth a few minutes of your time to browse these
+
+Of course, google yields all of these results, but if you're just starting out with JS or TS might be worth a few minutes of your time to browse these.
 
 Notes to readers - 
 
