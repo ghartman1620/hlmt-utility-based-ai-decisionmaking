@@ -1,10 +1,10 @@
 This is a final project for Computational Media 146, Game AI, instructors Daniel Shapiro and Nick Junius.
 
 Authors:
-Gabe Hartman (ghartman@ucsc.edu, github ghartman1620)
-Tyler Liddicoat (tliddico@ucsc.edu, github TLidd)
-Naum Markenzon (nmarkenz@ucsc.edu, github boomitsnoom)
-Mason Taylor (wimtaylo@ucsc.edu, github MTayLatte)
+Gabe Hartman (ghartman@ucsc.edu, https://github.com/ghartman1620)
+Tyler Liddicoat (tliddico@ucsc.edu, https://github.com/TLidd)
+Naum Markenzon (nmarkenz@ucsc.edu, https://github.com/boomitsnoom)
+Mason Taylor (wimtaylo@ucsc.edu, https://github.com/MTayLatte)
 
 Project proposal: https://docs.google.com/document/d/1NTo5ZZ4PjkuDcKHY03-F2TksJ7kiJx01hLWXHTVWCX0/edit?usp=sharing
 
