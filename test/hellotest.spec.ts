@@ -1,20 +1,19 @@
-import { hello } from "../src/mymodule";
 import { should } from "chai";
+import "mocha";
+import { hello } from "../src/mymodule";
 should();
-import 'mocha';
-
-describe('MyModule.hello()', function () {
-    it('should return a string with 13 characters', function () {
+describe("MyModule.hello()", () => {
+    it("should return a string with 13 characters", () => {
         hello().should.have.lengthOf(13);
     });
-    it('should have H as the first character in the string', function () {
-        hello().charAt(0).should.equal('H');
-        //throw {myError:'throwing error to fail test'}
+    it("should have H as the first character in the string", () => {
+        hello().charAt(0).should.equal("H");
+        // throw {myError:'throwing error to fail test'}
     });
-    it('should return the string \'Hello world!\'', function() {
-        hello().should.equal('Hello, world!');
+    it("should return the string \'Hello world!\'", () => {
+        hello().should.equal("Hello, world!");
     });
-    it('should not return the string \'Not this\'', function() {
-        hello().should.not.equal('Not this');
+    it("should not return the string \'Not this\'", () => {
+        hello().should.not.equal("Not this");
     });
 });
