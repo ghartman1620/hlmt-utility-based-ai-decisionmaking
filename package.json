@@ -1,0 +1,20 @@
+{
+  "name": "infinite-axis-utility-system",
+  "version": "1.0.0",
+  "description": "learning about unit testing with node",
+  "scripts": {
+    "test": "mocha -r ts-node/register test/*.spec.ts"
+  },
+  "author": "gabe hartman",
+  "license": "ISC",
+  "devDependencies": {
+    "@types/chai": "^4.1.7",
+    "@types/mocha": "^5.2.5",
+    "mocha": "^5.2.0",
+    "ts-node": "^7.0.1",
+    "typescript": "^3.1.6"
+  },
+  "dependencies": {
+    "chai": "^4.2.0"
+  }
+}
