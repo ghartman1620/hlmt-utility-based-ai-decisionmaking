@@ -6,6 +6,8 @@ Tyler Liddicoat (tliddico@ucsc.edu, github TLidd)
 Naum Markenzon (nmarkenz@ucsc.edu, github boomitsnoom)
 Mason Taylor (wimtaylo@ucsc.edu, github MTayLatte)
 
+Project proposal: https://docs.google.com/document/d/1NTo5ZZ4PjkuDcKHY03-F2TksJ7kiJx01hLWXHTVWCX0/edit?usp=drive_web&ouid=116127720773253109106
+
 Notes to devs -
 
 To run this software as a new developer:
