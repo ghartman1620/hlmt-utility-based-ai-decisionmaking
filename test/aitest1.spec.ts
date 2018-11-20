@@ -38,11 +38,20 @@ myAction();
 Do, according to the api, actions have duration?
 Can an action complete? If so, it's sort of tied in
 with the game loop, which I don't want the system to interface with. Alternately, perhaps
+
+// todo in the api
+// how to add method of scoring actions per target
+// add slope, x intercept, y intercept inputs to all response curves
+// Compensation factor for # of axis - learn more detail about this
+    // we want 6 axis with .9 score to be better than
+    // 2 axis with .8 score
+    //  see https://www.gdcvault.com/play/1021848/Building-a-Better-Centaur-AI
+    // at 10:10
 */
 
-describe("ActionDecider constructor", () => {
+describe("ActionDecider", () => {
     let ad: ActionDecider;
-    it("Should create an object that may be asked to select an action", () => {
+    it("Should construct without error", () => {
         ad = new ActionDecider();
     });
     it("Should accept actions that mutate the game state and " +
@@ -100,5 +109,25 @@ describe("ActionDecider constructor", () => {
         prob.get(heal).should.be.below(prob.get(fight) / 2);
         (prob.get(heal) + prob.get(fight)).should.be.approximately(1, .01);
         ad.decideAction(state, .5).should.equal(fight);
+    });
+    it("Should allow a user to call a selected function and " +
+        "make a resulting state change", () => {
+        let state: IState = {
+            enemies: 9,
+            health: 90,
+        };
+        // Perform fight action
+        // ad.decideAction(state, .5) should return the function
+        // fight, and (state) should call the fight function
+        // on state and modify it.
+        ad.decideAction(state, .5)(state);
+        state.enemies.should.equal(8);
+        state = {
+            enemies: 1,
+            health: 1,
+        };
+        // Perform heal action
+        ad.decideAction(state, .5)(state);
+        state.health.should.equal(2);
     });
 });

@@ -15,7 +15,7 @@ export type ActionMap = Map<Action, Axis[]>;
 
 // We can (for now) have quadratic and linear curves. More TBA
 export enum CurveType {
-    Linear, Quadratic
+    Linear, Quadratic, Logit, Logistic
 }
 
 export default class ActionDecider {
