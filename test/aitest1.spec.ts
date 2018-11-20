@@ -20,6 +20,26 @@ function heal(state: IState) {
     state.health++;
 }
 
+// random ruminations that probably aren't needed but i wanted to keep them
+// some place not in their own file
+/*
+i would like to be able to put an object in my actors
+and give the object some actions, and for each action give it some axis
+
+ActionDecider a = new ActionDecier();
+a.addAction(run_away);
+a.addAxis(run_away, function_that_returns_input(), min_input_val,
+ max_input_val, curve, inverted);
+
+then come along later and ask:
+myAction = a.decideAction();
+myAction();
+
+Do, according to the api, actions have duration?
+Can an action complete? If so, it's sort of tied in
+with the game loop, which I don't want the system to interface with. Alternately, perhaps
+*/
+
 describe("ActionDecider constructor", () => {
     let ad: ActionDecider;
     it("Should create an object that may be asked to select an action", () => {
