@@ -5,7 +5,7 @@
   "scripts": {
     "test": "mocha -r ts-node/register test/*.spec.ts"
   },
-  "author": "gabe hartman",
+  "author": "gabe hartman, tyler liddicoat, naum markenzon, mason taylor",
   "license": "ISC",
   "devDependencies": {
     "@types/chai": "^4.1.7",

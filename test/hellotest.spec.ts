@@ -8,7 +8,6 @@ describe("MyModule.hello()", () => {
     });
     it("should have H as the first character in the string", () => {
         hello().charAt(0).should.equal("H");
-        // throw {myError:'throwing error to fail test'}
     });
     it("should return the string \'Hello world!\'", () => {
         hello().should.equal("Hello, world!");
@@ -17,3 +16,7 @@ describe("MyModule.hello()", () => {
         hello().should.not.equal("Not this");
     });
 });
+// declare a dude
+// that dude can run away or fight
+// that dude runs away according to the axis health,
+// allies nearby, enemies nearby, enemy distance
