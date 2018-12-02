@@ -1,9 +1,13 @@
 import { should } from "chai";
 import "mocha";
 import ActionDecider from "../src/action-decider";
-import { Action, CurveType } from "../src/action-decider";
-
+import { UntargetedAction } from "../src/action-decider";
+import { LinearResponseCurve, QuadraticResponseCurve } from "../src/response-curve";
 should();
+
+// Contains a simple, untargeted test of ActionDecider.
+// Uses only Linear and Quadratic curves, and a simple,
+// two-piece game state.
 
 // A sample game state for the purpose of testing. It has
 // merely a number of entities and a score.
@@ -67,15 +71,18 @@ describe("ActionDecider", () => {
         // number of enemies, with min 0 and max 10
         // It can be linear, and it should not be inverted
         // (that is, more enemies = higher utility of fighting)
-        ad.addAxisForAction(fight, (state: IState) => state.enemies,
-                            0, 10, CurveType.Linear, false);
+        const getEnemies = (state: IState) => {
+            return state.enemies;
+        };
+        ad.addAxisForAction(fight, getEnemies,
+                            new LinearResponseCurve(0, 10));
 
         // add an axis to healing counting
         // health, 0-100. quadratic because as our health is very low
         // the utility of healing is high,
         // and inverted because low health = high utility of healing
         ad.addAxisForAction(heal, (state: IState) => state.health,
-                            0, 100, CurveType.Quadratic, true);
+                            new QuadraticResponseCurve(0, 100, -1));
     });
 
     // These tests should be improved with exact values.
@@ -85,7 +92,7 @@ describe("ActionDecider", () => {
             enemies: 1,
             health: 1,
         };
-        const prob: Map<Action, number> = ad.getProbabilities(state);
+        const prob: Map<UntargetedAction, number> = ad.getProbabilities(state);
         // should be more likely to pick healing than fighting
         // in this particular circumstance
         prob.get(fight).should.be.below(prob.get(heal));
@@ -101,7 +108,7 @@ describe("ActionDecider", () => {
             enemies: 9,
             health: 90,
         };
-        const prob: Map<Action, number> = ad.getProbabilities(state);
+        const prob: Map<UntargetedAction, number> = ad.getProbabilities(state);
         // should be more likely to pick fighting than healing
         // in this particular circumstance
         prob.get(heal).should.be.below(prob.get(fight));
@@ -120,7 +127,8 @@ describe("ActionDecider", () => {
         // ad.decideAction(state, .5) should return the function
         // fight, and (state) should call the fight function
         // on state and modify it.
-        ad.decideAction(state, .5)(state);
+        const action: UntargetedAction = ad.decideAction(state, .5);
+        action(state);
         state.enemies.should.equal(8);
         state = {
             enemies: 1,
