@@ -21,14 +21,11 @@ export class AbstractResponseCurve {
 }
 
 export class LinearResponseCurve extends AbstractResponseCurve {
-    private xIntercept: number;
     private yIntercept: number;
     constructor(min: number, max: number,
                 slope: number = 1,
-                xIntercept: number = 0,
                 yIntercept: number = 0) {
         super(min, max, slope);
-        this.xIntercept = xIntercept;
         this.yIntercept = yIntercept;
     }
 }
