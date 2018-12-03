@@ -58,15 +58,13 @@ describe("ActionDecider", () => {
     it("Should construct without error", () => {
         ad = new ActionDecider();
     });
-    it("Should accept actions that mutate the game state and " +
-        "recall those actions", () => {
+    it("Should accept actions that mutate the game state and recall those actions", () => {
         ad.addAction(fight);
         ad.addAction(heal);
         ad.getActions().should.contain(fight);
         ad.getActions().should.contain(heal);
     });
-    it("Should allow a single axis to be added " +
-        "for any given action", () => {
+    it("Should allow a single axis to be added for any given action", () => {
         // add an axis to fighting counting
         // number of enemies, with min 0 and max 10
         // It can be linear, and it should not be inverted
@@ -86,8 +84,7 @@ describe("ActionDecider", () => {
     });
 
     // These tests should be improved with exact values.
-    it("Should have a high probability of picking healing " +
-        "when health is low and few enemies", () => {
+    it("Should have a high probability of picking healing when health is low and few enemies", () => {
         const state: IState = {
             enemies: 1,
             health: 1,
@@ -102,8 +99,7 @@ describe("ActionDecider", () => {
         (prob.get(heal) + prob.get(fight)).should.be.approximately(1, .01);
         ad.decideAction(state, .5).should.equal(heal);
     });
-    it("Should have a high probability of picking fighting " +
-        "when there are many enemies and health is high", () => {
+    it("Should have a high probability of picking fighting when there are many enemies and health is high", () => {
         const state: IState = {
             enemies: 9,
             health: 90,
@@ -117,8 +113,7 @@ describe("ActionDecider", () => {
         (prob.get(heal) + prob.get(fight)).should.be.approximately(1, .01);
         ad.decideAction(state, .5).should.equal(fight);
     });
-    it("Should allow a user to call a selected function and " +
-        "make a resulting state change", () => {
+    it("Should allow a user to call a selected function and make a resulting state change", () => {
         let state: IState = {
             enemies: 9,
             health: 90,

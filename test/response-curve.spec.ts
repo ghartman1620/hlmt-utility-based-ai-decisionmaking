@@ -49,11 +49,17 @@ describe("LinearResponseCurve", () => {
     // Now let's set the y intercept a bit higher, with the same slope.
     // We expect the linear curve should flatten out when it starts outputting 1, and
     // that input values beyond the curve reaching an output 1 should just continue being 1.
-    it("Should cap outputs at 1 even if the y intercept and slope have", () => {
+    it("Should have a maximum output of 1", () => {
         curve = new LinearResponseCurve(0, 100, 1, .5);
         curve.evaluate(0).should.equal(.5);
         curve.evaluate(100).should.equal(1);
         curve.evaluate(50).should.equal(1);
+    });
+    it("Should have a minimum output of 0", () => {
+        curve = new LinearResponseCurve(0, 100, 1, -.5);
+        curve.evaluate(0).should.equal(0);
+        curve.evaluate(100).should.equal(.5);
+        curve.evaluate(50).should.equal(0);
     });
     it("Should evaluate input values beyond the minimum and maximum to be equal to the min and max", () => {
         curve = new LinearResponseCurve(0, 100);
@@ -63,10 +69,10 @@ describe("LinearResponseCurve", () => {
     });
     it("Should work with non-1 values of slope and y intercept", () => {
         curve = new LinearResponseCurve(0, 100, 2, .1);
-        curve.evaluate(0).should.equal(.1);
-        curve.evaluate(10).should.equal(.3);
-        curve.evaluate(45).should.equal(1);
-        curve.evaluate(100).should.equal(1);
+        curve.evaluate(0).should.be.closeTo(.1, .01);
+        curve.evaluate(10).should.be.closeTo(.3, .01);
+        curve.evaluate(45).should.be.closeTo(1, .01);
+        curve.evaluate(100).should.be.closeTo(1, .01);
     });
     it("Should allow smaller, non-divisible by 100 min and max ranges", () => {
         curve = new LinearResponseCurve(-36, -14);
@@ -130,7 +136,7 @@ describe("QuadraticResponseCurve", () => {
     });
     it("Should allow non-divisible by 100 ranges", () => {
         curve = new QuadraticResponseCurve(-36, 11);
-        curve.evaluate(2.4).should.be.closeTo(.6675, .001);
+        curve.evaluate(2.4).should.be.closeTo(.6675, .01);
     });
 });
 
@@ -143,31 +149,31 @@ describe("Logistic Response Curve", () => {
         curve.evaluate(25).should.be.closeTo(.076, .01);
         curve.evaluate(50).should.be.closeTo(.5, .01);
         curve.evaluate(75).should.be.closeTo(.924, .01);
-        curve.evaluate(1).should.be.closeTo(1, .01);
+        curve.evaluate(100).should.be.closeTo(1, .01);
     });
     it("Should be decreasing with the same inflection at .5 when slope is 10", () => {
         curve = new LogisticResponseCurve(0, 100, 10);
         curve.evaluate(0).should.be.closeTo(1, .01);
-        curve.evaluate(25).should.be.closeTo(.924, .001);
+        curve.evaluate(25).should.be.closeTo(.924, .01);
         curve.evaluate(50).should.be.closeTo(.5, .01);
-        curve.evaluate(75).should.be.closeTo(.076, .001);
+        curve.evaluate(75).should.be.closeTo(.076, .01);
         curve.evaluate(100).should.be.closeTo(0, .01);
     });
     it("Should have endpoint values of more than 0 and less than 1 when slope is less than 10", () => {
         curve = new LogisticResponseCurve(0, 100, 5);
-        curve.evaluate(0).should.be.closeTo(.924, .001);
-        curve.evaluate(25).should.be.closeTo(.777, .001);
-        curve.evaluate(50).should.be.closeTo(.5, .001);
-        curve.evaluate(75).should.be.closeTo(.222, .001);
-        curve.evaluate(1).should.be.closeTo(.076, .001);
+        curve.evaluate(0).should.be.closeTo(.924, .01);
+        curve.evaluate(25).should.be.closeTo(.777, .01);
+        curve.evaluate(50).should.be.closeTo(.5, .01);
+        curve.evaluate(75).should.be.closeTo(.222, .01);
+        curve.evaluate(100).should.be.closeTo(.076, .01);
     });
     it("Should reach minimum and maximum before the range bounds when slope is more than 10", () => {
         curve = new LogisticResponseCurve(0, 100, 15);
-        curve.evaluate(0).should.be.closeTo(1, .001);
-        curve.evaluate(25).should.be.closeTo(1, .001);
-        curve.evaluate(50).should.be.closeTo(.5, .001);
-        curve.evaluate(75).should.be.closeTo(0, .001);
-        curve.evaluate(1).should.be.closeTo(0, .001);
+        curve.evaluate(0).should.be.closeTo(1, .01);
+        curve.evaluate(15).should.be.closeTo(1, .01);
+        curve.evaluate(50).should.be.closeTo(.5, .01);
+        curve.evaluate(85).should.be.closeTo(0, .01);
+        curve.evaluate(100).should.be.closeTo(0, .01);
     });
     it("Should clamp inputs beyond min and max", () => {
         curve = new LogisticResponseCurve(0, 100);
@@ -202,7 +208,7 @@ describe("Logit Response Curve", () => {
         curve.evaluate(0).should.be.closeTo(0, .01);
         curve.evaluate(15.5).should.be.closeTo(0, .01);
         curve.evaluate(50).should.be.closeTo(.5, .01);
-        curve.evaluate(84.5).should.be.closeTo(0, .01);
+        curve.evaluate(84.5).should.be.closeTo(1, .01);
         curve.evaluate(100).should.be.closeTo(1, .01);
     });
     it("Should have even higher slope near the min and maximum but " +
