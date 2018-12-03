@@ -1,5 +1,8 @@
-import Axis from "./axis";
 import { AbstractResponseCurve } from "./response-curve";
+
+// Remove this!
+class Axis {}
+
 // The ActionDecider class is the general interface with which
 // A game will interact with the utility decision making process.
 // Check out the test cases in decision-test*.spec.ts for some
@@ -38,15 +41,16 @@ export type TargetedAction = (state: any, target: any) => void;
 // An Action (as in, the internal data stored by the ActionDecider)
 // Is either an UntargetedAction or the combination of a
 // TargetedAction and a TargetFunction.
-interface ITargetedAction {
-    action: TargetedAction;
-    target: TargetFunction;
-}
-type Action = UntargetedAction | ITargetedAction;
+
+type Action = UntargetedAction | TargetedAction;
 
 // An AxisFunction is a computation on a game state that causes
 // no state change and returns a number
 export type AxisFunction = (a: any) => number;
+
+// A TargetedAxis function has two arguments - the game state,
+// and the target on which to evaluate the axis.
+export type TargetedAxisFunction = (state: any, taget: any) => number;
 
 // A TargetFunction is a function on a state that
 // returns some kind of iterable.
@@ -122,7 +126,7 @@ export default class ActionDecider {
      *          iterator function for this action giving a number
      * @param curve A response curve to decide the utility for this consideration.
      */
-    public addTargetedAxisForAction(action: Action, get: AxisFunction,
+    public addTargetedAxisForAction(action: Action, get: TargetedAxisFunction,
                                     curve: AbstractResponseCurve): void {
         throw new Error("Not implemented!");
     }

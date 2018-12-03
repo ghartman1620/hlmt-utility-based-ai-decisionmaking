@@ -130,7 +130,7 @@ describe("ActionDecider in the health + enemies game state", () => {
             health: 1,
         };
         // Perform heal action
-        ad.decideAction(state, .5)(state);
+        ad.decideAction(state, 0)(state);
         state.health.should.equal(2);
     });
 });

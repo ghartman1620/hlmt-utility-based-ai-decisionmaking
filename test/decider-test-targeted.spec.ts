@@ -31,7 +31,10 @@ interface ILineMan {
     poweredUp: boolean;
 }
 interface ILineGhost {
+    // integer describing position on the line
     position: number;
+    // 0 - 100 hunger level
+    hunger: number;
     eaten: boolean;
 }
 interface ILineManGameState {
@@ -73,10 +76,12 @@ describe("In LineMan, with actions selected by ActionDecider", () => {
             ghosts: [
                 {
                     eaten: false,
+                    hunger: 0,
                     position: 2
                 },
                 {
                     eaten: false,
+                    hunger: 0,
                     position: -2,
                 }
             ],
@@ -133,10 +138,12 @@ describe("In LineMan, with actions selected by ActionDecider", () => {
             ghosts: [
                 {
                     eaten: false,
+                    hunger: 0,
                     position: 2
                 },
                 {
                     eaten: false,
+                    hunger: 0,
                     position: -2,
                 }
             ],
@@ -177,14 +184,78 @@ describe("In LineMan, with actions selected by ActionDecider", () => {
         }
         // As last time, run the action decided on and
         // assert we moved the right direction.
-        ghostDeciders[0].decideAction(state)(state);
-        ghostDeciders[1].decideAction(state)(state);
+        ghostDeciders[0].decideAction(state, 0)(state);
+        ghostDeciders[1].decideAction(state, 0)(state);
         state.ghosts[0].position.should.equal(3);
         state.ghosts[0].position.should.equal(-3);
     });
     it("Ghosts should consider LineMan's proximity and the proximity " +
         "of each Vegetable and decide a vegetable or LineMan to pursue", () => {
-        const one = 1;
-        one.should.equal(1);
+        const state: ILineManGameState  = {
+            ghostHome: -5,
+            ghosts: [
+                {
+                    eaten: false,
+                    hunger: 50,
+                    position: 5
+                }
+            ],
+            lineMan: {
+                position: 0,
+                poweredUp: true
+            },
+            powerUps: [],
+            vegetables: [2, 6, 8]
+        };
+        const ghostActions: ActionDecider = new ActionDecider();
+        // Go at a vegetable. This is a targeted action.
+        const ghostGoAtAndEatVegetable = (gameState: ILineManGameState, vegetable: number) => {
+            if (vegetable < gameState.ghosts[0].position) {
+                gameState.ghosts[0].position--;
+            } else if (vegetable > gameState.ghosts[0].position) {
+                gameState.ghosts[0].position++;
+            } else {
+                // Eat this vegetable. Get 20 hunger, and remove it.
+                gameState.ghosts[0].hunger += 20;
+                gameState.vegetables.splice(gameState.vegetables.indexOf(vegetable));
+            }
+        };
+        // Go at LineMan. This is an untargeted action. While it seems like it would be targeted
+        // (The target is LineMan) LineMan is sort of a static piece of state in the game state.
+        // If there were more than one LineMan, it would certainly be a targeted action.
+        const ghostGoAtLineMan = (gameState: ILineManGameState) => {
+            if (gameState.ghosts[0].position > gameState.lineMan.position) {
+                gameState.ghosts[0].position--;
+            } else if (gameState.ghosts[0].position < gameState.lineMan.position) {
+                gameState.ghosts[0].position++;
+            } else {
+                /* Do nothing. */
+            }
+        };
+        // We might decide to go eat a vegetable if:
+        // - There is a vegetable near
+        // - Our hunger is low.
+        // Note this means that as we go towards LineMan it might be come more util to go eat a vegetable
+        // on the way.
+
+        ghostActions.addTargetedAction(ghostGoAtAndEatVegetable,
+            (gameState: ILineManGameState) => gameState.vegetables);
+        // And we might decide to go at LineMan if he is near, but certainly not if he is powered up.
+        ghostActions.addAction(ghostGoAtLineMan);
+        ghostActions.addAxisForAction(ghostGoAtLineMan,
+            // The difference between LineMan's position and the ghost's
+            (gameState: ILineManGameState) => Math.abs(gameState.lineMan.position - gameState.ghosts[0].position),
+            // Should be more utility of going at LineMan as we're closer, because we can see LineMan
+            // and want to attack LineMan
+            new LinearResponseCurve(0, 10, -1));
+        ghostActions.addAxisForAction(ghostGoAtLineMan,
+            // Whether or not LineMan is powered up
+            (gameState: ILineManGameState) => gameState.lineMan.poweredUp ? 1 : 0,
+            // Invert because if LineMan is powered up should have utility 0. Otherwise utility 1
+            new BinaryNumericInputResponseCurve(.5, true));
+        ghostActions.addTargetedAxisForAction(ghostGoAtAndEatVegetable,
+            (gameState: ILineManGameState, vegetable: number) => Math.abs(vegetable - gameState.ghosts[0].position),
+            // TODO finish this
+            new LinearResponseCurve(0, 1));
     });
 });
