@@ -2,6 +2,7 @@ import { should } from "chai";
 import "mocha";
 import {
     AbstractResponseCurve,
+    BinaryNumericInputResponseCurve,
     LinearResponseCurve,
     LogisticResponseCurve,
     LogitResponseCurve,
@@ -28,6 +29,9 @@ describe("Response Curves", () => {
     });
     it("Should not throw an error when a LogitResponseCurve is constructed", () => {
         curve = new LogitResponseCurve(0, 1);
+    });
+    it("Should not throw an error when a BinaryNumericInputResponseCurve is constructed", () => {
+        curve = new BinaryNumericInputResponseCurve(5);
     });
 });
 describe("LinearResponseCurve", () => {
@@ -228,5 +232,26 @@ describe("Logit Response Curve", () => {
     it("Should allow non-divisible by 100 ranges", () => {
         curve = new LogitResponseCurve(-3, 5.5);
         curve.evaluate(2.1).should.be.closeTo(.532, .01);
+    });
+});
+
+describe("Binary Numeric Input Response Curve", () => {
+    let curve: AbstractResponseCurve;
+    it("Should create a curve that evaluates to 1 for an input greater or equal than the breakpoint", () => {
+        curve = new BinaryNumericInputResponseCurve(10);
+        curve.evaluate(5).should.equal(0);
+        curve.evaluate(9).should.equal(0);
+        curve.evaluate(10).should.equal(1);
+        curve.evaluate(11).should.equal(1);
+        curve.evaluate(2300430430).should.equal(1);
+    });
+    it("Should create a curve that evaluates to 0 for an input " +
+       "greater or equal than the breakpoint if inverted", () => {
+        curve = new BinaryNumericInputResponseCurve(10, true);
+        curve.evaluate(5).should.equal(1);
+        curve.evaluate(9).should.equal(1);
+        curve.evaluate(10).should.equal(0);
+        curve.evaluate(11).should.equal(0);
+        curve.evaluate(2300430430).should.equal(0);
     });
 });

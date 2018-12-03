@@ -142,7 +142,7 @@ export default class ActionDecider {
         throw new Error("Not implemented!");
     }
     /**
-     * Use getProbabilities to select an action based
+     * Uses getProbabilities to select an action based
      * on the weighed probabilities returned.
      * for example, if getProbabilities returned:
      * {
@@ -158,6 +158,9 @@ export default class ActionDecider {
      * @param state The game state to make a decision for.
      * @param random A number in [0, 1) to use to select an action.
      *              Defaults to Math.random().
+     *              Will consider actions randomness in decreasing order of utility,
+     *              so a random number of 0 will always select the highest utility
+     *              action. This can be used to create deterministic action selection.
      * @returns An action on the game state that may be called.
      *          If a targeted action is selected for a particular
      *          target, a function caling the targetedaction on the

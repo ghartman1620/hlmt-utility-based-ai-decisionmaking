@@ -53,7 +53,7 @@ with the game loop, which I don't want the system to interface with. Alternately
     // at 10:10
 */
 
-describe("ActionDecider", () => {
+describe("ActionDecider in the health + enemies game state", () => {
     let ad: ActionDecider;
     it("Should construct without error", () => {
         ad = new ActionDecider();
@@ -97,7 +97,7 @@ describe("ActionDecider", () => {
         prob.get(fight).should.be.below(prob.get(heal) / 2);
         // And we should always pick something.
         (prob.get(heal) + prob.get(fight)).should.be.approximately(1, .01);
-        ad.decideAction(state, .5).should.equal(heal);
+        ad.decideAction(state, 0).should.equal(heal);
     });
     it("Should have a high probability of picking fighting when there are many enemies and health is high", () => {
         const state: IState = {
@@ -111,7 +111,7 @@ describe("ActionDecider", () => {
         // in fact, it should be ALOT less.
         prob.get(heal).should.be.below(prob.get(fight) / 2);
         (prob.get(heal) + prob.get(fight)).should.be.approximately(1, .01);
-        ad.decideAction(state, .5).should.equal(fight);
+        ad.decideAction(state, 0).should.equal(fight);
     });
     it("Should allow a user to call a selected function and make a resulting state change", () => {
         let state: IState = {

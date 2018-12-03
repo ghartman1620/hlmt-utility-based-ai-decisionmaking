@@ -171,3 +171,29 @@ export class LogitResponseCurve extends AbstractResponseCurve {
         return zeroToOneNormalize(output);
     }
 }
+// A response curve mapping a numeric input to a binary output based on
+// whether it's less than or more than the value.
+export class BinaryNumericInputResponseCurve extends AbstractResponseCurve {
+    private breakpoint: number;
+    private inverted: boolean;
+    constructor(breakpoint: number, inverted: boolean = false) {
+        // See, now this is the sort of thing you have to do if you've
+        // made a bad decision. Making arbitrary superclass calls with special magic values
+        // that we're just going to... ignore. Hmmmmmmmmmmmmmmmmmmmmm.
+        // Perhaps we should use strategy here? How would that look?
+        super(0, 0, 0);
+        this.breakpoint = breakpoint;
+        this.inverted = inverted;
+    }
+    /**
+     * Evaluate input to 0 or 1.
+     * @param input number to compare against this binary numeric input response curve.
+     * @returns 0 if input is less than breakpoint and the curve is not inverted
+     *          1 if input is greater or equal breakpoint and the curve is not inverted
+     *          1 if input is less than breakpoint and the curve is inverted
+     *          0 if input is greater or equal breakpoint and the curve is inverted
+     */
+    public evaluate(input: number): number {
+        return this.inverted ? ((input >= this.breakpoint) ? 0 : 1) : ((input < this.breakpoint) ? 0 : 1);
+    }
+}
