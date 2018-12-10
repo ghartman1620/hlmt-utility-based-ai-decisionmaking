@@ -1,5 +1,4 @@
 import { AbstractResponseCurve } from "./response-curve";
-let axisArray: Axis[] = Array();
     /**
      * Construct an axis.
      * @param action Action to be performed.
@@ -8,10 +7,10 @@ let axisArray: Axis[] = Array();
      * @param curve The current response curve that is passed in as a parameter.
      */
 class Axis {
-    protected action: Action;
-    protected axisFunction: TargetFunction;
-    protected curve: AbstractResponseCurve;
-    constructor(action: Action, axisFunction: TargetFunction, curve: AbstractResponseCurve) {
+    public action: Action;
+    public axisFunction: AxisFunction;
+    public curve: AbstractResponseCurve;
+    constructor(action: Action, axisFunction: AxisFunction, curve: AbstractResponseCurve) {
         this.action = action;
         this.axisFunction = axisFunction;
         this.curve = curve;
@@ -81,10 +80,17 @@ export enum CurveType {
     Linear, Quadratic
 }
 
+interface IActionProbability {
+    action: Action;
+    probability: number;
+}
+
 export default class ActionDecider {
     private actions: ActionMap;
+    private axisArray: Axis[];
     constructor() {
         this.actions = new Map();
+        this.axisArray = [];
     }
 
     /**
@@ -95,7 +101,7 @@ export default class ActionDecider {
      * @param action The action to be added.
      */
     public addAction(action: UntargetedAction): void {
-        this.actions.set(action, axisArray);
+        this.actions.set(action, []);
         // throw new Error("Not implemented!");
     }
     /**
@@ -133,8 +139,9 @@ export default class ActionDecider {
      */
     public addAxisForAction(action: Action, get: AxisFunction,
                             curve: AbstractResponseCurve): void {
-        const newAxis = new Axis(action,get,curve);
-        axisArray.push(newAxis);
+        const newAxis = new Axis(action, get, curve);
+        this.actions.get(action).push(newAxis);
+        this.axisArray.push(newAxis);
         // throw new Error("Not implemented!");
     }
     /**
@@ -151,19 +158,47 @@ export default class ActionDecider {
         throw new Error("Not implemented!");
     }
     /**
+     *
+     * @param state Current state to which the utility is being calculated for.
+     * @param action Current action to compute the probability for.
+     * @returns number which corresponds to the utility calculated.
+     */
+    public computeUtility(state: any, action: Action): number {
+        const currentAxisList = this.actions.get(action);
+        let utility = 1;
+        for ( const axis of currentAxisList) {
+            utility = utility * axis.curve.evaluate(axis.axisFunction(state));
+        }
+        return utility;
+    }
+    /**
      * Gets weighted probabilities for each
      * Action in this ActionDecider, such that the
      * sum of all probabilities is 1.
      * Targeted actions are evaluated for each target,
      * and such
      * @param state A game state to evaluate probabilites for.
-     * @returns A mapping of untargeted actions to probabilities.
-     *          Targeted Actions will have an untargeted action entry
-     *          with the targeted function called on each target
-     *          in the map.
+     * @returns A sorted list of action, probability pairs ordered
+     *          from highest probability to lowest probability
      */
-    public getProbabilities(state: any): Map<UntargetedAction, number> {
-        throw new Error("Not implemented!");
+    public getProbabilities(state: any): IActionProbability[] {
+        // const probDistribution = new Map();
+        const actionList = this.getActions();
+        let utility = 0;
+        for (const action of actionList) {
+            utility = utility + this.computeUtility(state, action);
+        }
+        const probabilityList = [];
+        for (const action of actionList) {
+            const probability = this.computeUtility(state, action) / utility;
+            const newActionProbability: IActionProbability = {
+                action, probability
+
+            };
+            probabilityList.push(newActionProbability);
+        }
+        probabilityList.sort((a, b) => a.probability - b.probability);
+        return probabilityList;
     }
     /**
      * Uses getProbabilities to select an action based
