@@ -1,7 +1,22 @@
 import { AbstractResponseCurve } from "./response-curve";
-
-// Remove this!
-class Axis {}
+let axisArray: Axis[] = Array();
+    /**
+     * Construct an axis.
+     * @param action Action to be performed.
+     * @param axisFunction Function that is a TargetFunction, meaning it takes in the state
+     * and returns a number based on the state.
+     * @param curve The current response curve that is passed in as a parameter.
+     */
+class Axis {
+    protected action: Action;
+    protected axisFunction: TargetFunction;
+    protected curve: AbstractResponseCurve;
+    constructor(action: Action, axisFunction: TargetFunction, curve: AbstractResponseCurve) {
+        this.action = action;
+        this.axisFunction = axisFunction;
+        this.curve = curve;
+    }
+}
 
 // The ActionDecider class is the general interface with which
 // A game will interact with the utility decision making process.
@@ -80,7 +95,8 @@ export default class ActionDecider {
      * @param action The action to be added.
      */
     public addAction(action: UntargetedAction): void {
-        throw new Error("Not implemented!");
+        this.actions.set(action, axisArray);
+        // throw new Error("Not implemented!");
     }
     /**
      * Adds an action as with addAction, with the change
@@ -97,7 +113,9 @@ export default class ActionDecider {
      * @returns List of actions added so far.
      */
     public getActions(): Action[] {
-        throw new Error("Not implemented!");
+         const actionArray = Array.from(this.actions.keys());
+         return actionArray;
+        // throw new Error("Not implemented!");
     }
     /**
      * Gets the list of axis associated with a particular action.
@@ -115,7 +133,9 @@ export default class ActionDecider {
      */
     public addAxisForAction(action: Action, get: AxisFunction,
                             curve: AbstractResponseCurve): void {
-        throw new Error("Not implemented!");
+        const newAxis = new Axis(action,get,curve);
+        axisArray.push(newAxis);
+        // throw new Error("Not implemented!");
     }
     /**
      * Add an axis for a targeted action.
