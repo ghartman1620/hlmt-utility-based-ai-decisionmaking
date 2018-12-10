@@ -197,7 +197,7 @@ export default class ActionDecider {
             };
             probabilityList.push(newActionProbability);
         }
-        probabilityList.sort((a, b) => a.probability - b.probability);
+        probabilityList.sort((a, b) => b.probability - a.probability);
         return probabilityList;
     }
     /**
@@ -225,7 +225,16 @@ export default class ActionDecider {
      *          target, a function caling the targetedaction on the
      *          given target will be returned.
      */
-    public decideAction(state: any, random: number = Math.random()): UntargetedAction {
-        throw new Error("Not implemented!");
+    public decideAction(state: any, random: number = Math.random()): Action {
+        const sortedListOfActions = this.getProbabilities(state);
+        let runningSum = 0;
+        for (const actionProbability of sortedListOfActions) {
+            runningSum += actionProbability.probability;
+
+            if (runningSum > random) {
+                return actionProbability.action;
+            }
+        }
+
     }
 }
