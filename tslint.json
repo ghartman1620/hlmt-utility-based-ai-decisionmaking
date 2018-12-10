@@ -10,7 +10,8 @@
         "max-line-length" : [true, 120],
         "no-unused-variable" : true,
         "no-console" : false,
-        "no-debugger" : false
+        "no-debugger" : false,
+        "ordered-imports" : false
     },
     "rulesDirectory": []
 }
