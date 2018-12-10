@@ -1,5 +1,5 @@
 import { AbstractResponseCurve } from "./response-curve";
-let axisArray: Axis[] = Array();
+const axisArray: Axis[] = Array();
     /**
      * Construct an axis.
      * @param action Action to be performed.
@@ -133,7 +133,7 @@ export default class ActionDecider {
      */
     public addAxisForAction(action: Action, get: AxisFunction,
                             curve: AbstractResponseCurve): void {
-        const newAxis = new Axis(action,get,curve);
+        const newAxis = new Axis(action, get, curve);
         axisArray.push(newAxis);
         // throw new Error("Not implemented!");
     }

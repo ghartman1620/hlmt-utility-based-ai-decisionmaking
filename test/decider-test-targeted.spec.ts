@@ -5,7 +5,9 @@ import { UntargetedAction } from "../src/action-decider";
 import {
     BinaryNumericInputResponseCurve,
     LinearResponseCurve,
-    QuadraticResponseCurve
+    QuadraticResponseCurve,
+    LogitResponseCurve,
+    LogisticResponseCurve
 } from "../src/response-curve";
 should();
 
@@ -191,22 +193,7 @@ describe("In LineMan, with actions selected by ActionDecider", () => {
     });
     it("Ghosts should consider LineMan's proximity and the proximity " +
         "of each Vegetable and decide a vegetable or LineMan to pursue", () => {
-        const state: ILineManGameState  = {
-            ghostHome: -5,
-            ghosts: [
-                {
-                    eaten: false,
-                    hunger: 50,
-                    position: 5
-                }
-            ],
-            lineMan: {
-                position: 0,
-                poweredUp: true
-            },
-            powerUps: [],
-            vegetables: [2, 6, 8]
-        };
+        
         const ghostActions: ActionDecider = new ActionDecider();
         // Go at a vegetable. This is a targeted action.
         const ghostGoAtAndEatVegetable = (gameState: ILineManGameState, vegetable: number) => {
@@ -232,12 +219,6 @@ describe("In LineMan, with actions selected by ActionDecider", () => {
                 /* Do nothing. */
             }
         };
-        // We might decide to go eat a vegetable if:
-        // - There is a vegetable near
-        // - Our hunger is low.
-        // Note this means that as we go towards LineMan it might be come more util to go eat a vegetable
-        // on the way.
-
         ghostActions.addTargetedAction(ghostGoAtAndEatVegetable,
             (gameState: ILineManGameState) => gameState.vegetables);
         // And we might decide to go at LineMan if he is near, but certainly not if he is powered up.
@@ -253,9 +234,33 @@ describe("In LineMan, with actions selected by ActionDecider", () => {
             (gameState: ILineManGameState) => gameState.lineMan.poweredUp ? 1 : 0,
             // Invert because if LineMan is powered up should have utility 0. Otherwise utility 1
             new BinaryNumericInputResponseCurve(.5, true));
+        // We might decide to go eat a vegetable if:
+        // - There is a vegetable near
+        // - Our hunger is low (using logistic curve,
+        //   so when we're nearing half hunger we'll rapidly increase eating utility)
+        // Note this means that as we go towards LineMan it might be come more util to go eat a vegetable
+        // on the way because of the distance utility of eating vegetables.
         ghostActions.addTargetedAxisForAction(ghostGoAtAndEatVegetable,
             (gameState: ILineManGameState, vegetable: number) => Math.abs(vegetable - gameState.ghosts[0].position),
-            // TODO finish this
-            new LinearResponseCurve(0, 1));
+            new QuadraticResponseCurve(0, 5, 1, 1, 0));
+        ghostActions.addAxisForAction(ghostGoAtAndEatVegetable,
+            (gameState: ILineManGameState) => gameState.ghosts[0].hunger,
+            new LogisticResponseCurve(0, 100, 10));
+        const state: ILineManGameState  = {
+                ghostHome: -5,
+                ghosts: [
+                    {
+                        eaten: false,
+                        hunger: 50,
+                        position: 5
+                    }
+                ],
+                lineMan: {
+                    position: 0,
+                    poweredUp: true
+                },
+                powerUps: [],
+                vegetables: [2, 6, 8]
+            };
     });
 });
