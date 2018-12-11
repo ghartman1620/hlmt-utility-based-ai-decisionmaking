@@ -8,9 +8,9 @@ import { AbstractResponseCurve } from "./response-curve";
      */
 class Axis {
     public action: Action;
-    public axisFunction: AxisFunction;
+    public axisFunction: AxisFunction | TargetedAxisFunction;
     public curve: AbstractResponseCurve;
-    constructor(action: Action, axisFunction: AxisFunction, curve: AbstractResponseCurve) {
+    constructor(action: Action, axisFunction: AxisFunction | TargetedAxisFunction, curve: AbstractResponseCurve) {
         this.action = action;
         this.axisFunction = axisFunction;
         this.curve = curve;
@@ -87,9 +87,11 @@ interface IActionProbability {
 
 export default class ActionDecider {
     private actions: ActionMap;
+    private targetFunctions: Map<TargetedAction, TargetFunction>;
     private axisArray: Axis[];
     constructor() {
         this.actions = new Map();
+        this.targetFunctions = new Map();
         this.axisArray = [];
     }
 
@@ -113,7 +115,8 @@ export default class ActionDecider {
      * @param target A function on state returning an iterable.
      */
     public addTargetedAction(action: TargetedAction, targets: TargetFunction): void {
-        throw new Error("Not implemented!");
+        this.actions.set(action, []);
+        this.targetFunctions.set(action, targets);
     }
     /**
      * @returns List of actions added so far.
@@ -121,7 +124,6 @@ export default class ActionDecider {
     public getActions(): Action[] {
          const actionArray = Array.from(this.actions.keys());
          return actionArray;
-        // throw new Error("Not implemented!");
     }
     /**
      * Gets the list of axis associated with a particular action.
@@ -142,7 +144,6 @@ export default class ActionDecider {
         const newAxis = new Axis(action, get, curve);
         this.actions.get(action).push(newAxis);
         this.axisArray.push(newAxis);
-        // throw new Error("Not implemented!");
     }
     /**
      * Add an axis for a targeted action.
@@ -155,7 +156,9 @@ export default class ActionDecider {
      */
     public addTargetedAxisForAction(action: Action, get: TargetedAxisFunction,
                                     curve: AbstractResponseCurve): void {
-        throw new Error("Not implemented!");
+        const newAxis = new Axis(action, get, curve);
+        this.actions.get(action).push(newAxis);
+        this.axisArray.push(newAxis);
     }
     /**
      *
@@ -170,6 +173,12 @@ export default class ActionDecider {
             utility = utility * axis.curve.evaluate(axis.axisFunction(state));
         }
         return utility;
+    }
+
+    public computeTargetedUtilities(state: any, action: TargetedAction): IActionProbability[] {
+        for (const axis of this.actions.get(action)) { // for targeted action, calculate utility of it in all axis
+
+        }
     }
     /**
      * Gets weighted probabilities for each
