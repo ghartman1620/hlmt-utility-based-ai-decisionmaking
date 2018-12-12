@@ -1,17 +1,15 @@
 import { AbstractResponseCurve } from "./response-curve";
-    /**
-     * Construct an axis.
-     * @param action Action to be performed.
-     * @param axisFunction Function that is a TargetFunction, meaning it takes in the state
-     * and returns a number based on the state.
-     * @param curve The current response curve that is passed in as a parameter.
-     */
+/**
+ * Construct an axis.
+ * @param axisFunction Function that is a TargetFunction, meaning it takes in the state
+ * and returns a number based on the state.
+ * @param curve The current response curve that is passed in as a parameter.
+ */
 class Axis {
-    public action: Action;
     public axisFunction: AxisFunction | TargetedAxisFunction;
     public curve: AbstractResponseCurve;
-    constructor(action: Action, axisFunction: AxisFunction | TargetedAxisFunction, curve: AbstractResponseCurve) {
-        this.action = action;
+    constructor(axisFunction: AxisFunction | TargetedAxisFunction,
+                curve: AbstractResponseCurve) {
         this.axisFunction = axisFunction;
         this.curve = curve;
     }
@@ -46,21 +44,93 @@ class Axis {
 
 // An Untargeted Action is some action upon a game state that causes
 // state change but does not return a value
-export type UntargetedAction = (state: any) => void;
+export type UntargetedActionFunction = (state: any) => void;
 
 // A Targeted Action is an action that acts upon the game state
 // and some particular target.
-export type TargetedAction = (state: any, target: any) => void;
+export type TargetedActionFunction = (state: any, target: any) => void;
 
 // An Action (as in, the internal data stored by the ActionDecider)
 // Is either an UntargetedAction or the combination of a
 // TargetedAction and a TargetFunction.
 
-type Action = UntargetedAction | TargetedAction;
+type ActionFunction = UntargetedActionFunction | TargetedActionFunction;
+
+class AbstractAction {
+    public axes: Axis[];
+    public targetedAxes: Axis[];
+    constructor() {
+        if (new.target === AbstractAction) {
+            throw new Error("No abstract actions constructed");
+        }
+        this.targetedAxes = [];
+        this.axes = [];
+    }
+    public addAxis(axis: Axis): void {
+        this.axes.push(axis);
+    }
+    public addTargetedAxis(axis: Axis): void {
+        this.targetedAxes.push(axis);
+    }
+    public getUtilities(state: any): IActionValue[] {
+        throw new Error("override me");
+    }
+}
+class TargetedAction extends AbstractAction {
+    public targetedAction: TargetedActionFunction;
+    public targetFunction: TargetFunction;
+    public constructor(targetedAction: TargetedActionFunction, targetFunction: TargetFunction) {
+        super();
+        this.targetedAction = targetedAction;
+        this.targetFunction = targetFunction;
+    }
+    public getUtilities(state): IActionValue[] {
+        let utilitiesTotal = 1;
+        const utilityActions: IActionValue[] = [];
+        for (const axis of this.axes) {
+            utilitiesTotal *= axis.curve.evaluate
+                ((axis.axisFunction as AxisFunction)(state));
+        }
+        for (const target of this.targetFunction(state)) {
+            const targetSelectedAction = (s: any) => {
+                this.targetedAction(s, target);
+            };
+            let targetUtilityTotal = 1;
+            for (const axis of this.targetedAxes) {
+                targetUtilityTotal *= axis.curve.evaluate
+                    ((axis.axisFunction as TargetedAxisFunction)(state, target));
+            }
+            let totalUtility = 1;
+            totalUtility *= targetUtilityTotal;
+            totalUtility *= utilitiesTotal;
+            utilityActions.push({value: totalUtility, action: targetSelectedAction});
+        }
+        return utilityActions;
+    }
+}
+class UntargetedAction extends AbstractAction {
+    public untargetedAction: UntargetedActionFunction;
+    public constructor(untargetedAction: UntargetedActionFunction, axisList: Axis[]) {
+        super();
+        this.untargetedAction = untargetedAction;
+    }
+    public getUtilities(state): IActionValue[] {
+        let utilitiesTotal =  1;
+        for (const axis of this.axes) {
+            utilitiesTotal *= axis.curve.evaluate
+                ((axis.axisFunction as AxisFunction)(state));
+        }
+        const ret =  [{
+            action: this.untargetedAction,
+            value: utilitiesTotal
+        }];
+        return ret;
+    }
+}
 
 // An AxisFunction is a computation on a game state that causes
 // no state change and returns a number
-export type AxisFunction = (a: any) => number;
+export type AxisFunction = (state: any) => number;
 
 // A TargetedAxis function has two arguments - the game state,
 // and the target on which to evaluate the axis.
@@ -71,28 +141,24 @@ export type TargetedAxisFunction = (state: any, taget: any) => number;
 // I wish I could require this function to return an
 // iterable, but there appears to be no way at
 // compile time to confirm that something is iterable with TS.
-export type TargetFunction = (a: any) => any;
+export type TargetFunction = (a: any) => Iterable<any>;
 
 // An ActionMap maps Actions to a list of Axis
-export type ActionMap = Map<Action, Axis[]>;
+export type ActionMap = Map<AbstractAction, Axis[]>;
 
-export enum CurveType {
-    Linear, Quadratic
-}
-
-interface IActionProbability {
-    action: Action;
-    probability: number;
+/**
+ * Contains an action and some value.
+ * That value is usually utility or probability
+ */
+interface IActionValue {
+    action: UntargetedActionFunction;
+    value: number;
 }
 
 export default class ActionDecider {
-    private actions: ActionMap;
-    private targetFunctions: Map<TargetedAction, TargetFunction>;
-    private axisArray: Axis[];
+    private actions: Map<ActionFunction, AbstractAction>;
     constructor() {
         this.actions = new Map();
-        this.targetFunctions = new Map();
-        this.axisArray = [];
     }
 
     /**
@@ -102,8 +168,8 @@ export default class ActionDecider {
      * using addAxisForAction for this action.
      * @param action The action to be added.
      */
-    public addAction(action: UntargetedAction): void {
-        this.actions.set(action, []);
+    public addAction(action: UntargetedActionFunction): void {
+        this.actions.set(action, new UntargetedAction(action, []));
         // throw new Error("Not implemented!");
     }
     /**
@@ -114,14 +180,13 @@ export default class ActionDecider {
      * @param action The action to be added
      * @param target A function on state returning an iterable.
      */
-    public addTargetedAction(action: TargetedAction, targets: TargetFunction): void {
-        this.actions.set(action, []);
-        this.targetFunctions.set(action, targets);
+    public addTargetedAction(action: TargetedActionFunction, targets: TargetFunction): void {
+        this.actions.set(action, new TargetedAction(action, targets));
     }
     /**
      * @returns List of actions added so far.
      */
-    public getActions(): Action[] {
+    public getActions(): ActionFunction[] {
          const actionArray = Array.from(this.actions.keys());
          return actionArray;
     }
@@ -129,8 +194,8 @@ export default class ActionDecider {
      * Gets the list of axis associated with a particular action.
      * @param action The action to get axis for
      */
-    public getAxisForAction(action: Action): Axis[] {
-        throw new Error("Not implemented!");
+    public getAxisForAction(action: ActionFunction): Axis[] {
+        return this.actions.get(action).axes;
     }
     /**
      * Adds an axis for an action.
@@ -139,11 +204,10 @@ export default class ActionDecider {
      * @param get A function on state that returns a number.
      * @param curve A response curve to decide the utility for this consideration.
      */
-    public addAxisForAction(action: Action, get: AxisFunction,
+    public addAxisForAction(action: ActionFunction, get: AxisFunction,
                             curve: AbstractResponseCurve): void {
-        const newAxis = new Axis(action, get, curve);
-        this.actions.get(action).push(newAxis);
-        this.axisArray.push(newAxis);
+        const newAxis = new Axis(get, curve);
+        this.actions.get(action).addAxis(newAxis);
     }
     /**
      * Add an axis for a targeted action.
@@ -154,32 +218,31 @@ export default class ActionDecider {
      *          iterator function for this action giving a number
      * @param curve A response curve to decide the utility for this consideration.
      */
-    public addTargetedAxisForAction(action: Action, get: TargetedAxisFunction,
+    public addTargetedAxisForAction(action: ActionFunction, get: TargetedAxisFunction,
                                     curve: AbstractResponseCurve): void {
-        const newAxis = new Axis(action, get, curve);
-        this.actions.get(action).push(newAxis);
-        this.axisArray.push(newAxis);
-    }
-    /**
-     *
-     * @param state Current state to which the utility is being calculated for.
-     * @param action Current action to compute the probability for.
-     * @returns number which corresponds to the utility calculated.
-     */
-    public computeUtility(state: any, action: Action): number {
-        const currentAxisList = this.actions.get(action);
-        let utility = 1;
-        for ( const axis of currentAxisList) {
-            utility = utility * axis.curve.evaluate(axis.axisFunction(state));
+        const newAxis = new Axis(get, curve);
+        if (this.actions.get instanceof UntargetedAction) {
+            throw new Error("Cannot add targeted axes to untargeted actions");
         }
-        return utility;
+        this.actions.get(action).addTargetedAxis(newAxis);
+    }
+    public computeUntargetedUtility(state: any, action: UntargetedActionFunction): number {
+        return this.actions.get(action).getUtilities(state)[0].value;
+    }
+    // public computeTargetedUtilities(state: any, action: TargetedAction): IActionValue[] {
+    //     for (const axis of this.actions.get(action)) { // for targeted action, calculate utility of it in all axis
+
+    //     }
+    // }
+
+    public getAllActionUtilities(state): IActionValue[] {
+        let actionUtilities: IActionValue[] = [];
+        for (const action of this.actions.values()) {
+            actionUtilities = actionUtilities.concat(action.getUtilities(state));
+        }
+        return actionUtilities;
     }
 
-    public computeTargetedUtilities(state: any, action: TargetedAction): IActionProbability[] {
-        for (const axis of this.actions.get(action)) { // for targeted action, calculate utility of it in all axis
-
-        }
-    }
     /**
      * Gets weighted probabilities for each
      * Action in this ActionDecider, such that the
@@ -187,26 +250,27 @@ export default class ActionDecider {
      * Targeted actions are evaluated for each target,
      * and such
      * @param state A game state to evaluate probabilites for.
-     * @returns A sorted list of action, probability pairs ordered
-     *          from highest probability to lowest probability
+     * @returns A sorted list of IActionValues where value = probability
+     *          ordered from highest probability to lowest probability
      */
-    public getProbabilities(state: any): IActionProbability[] {
+    public getProbabilities(state: any): IActionValue[] {
         // const probDistribution = new Map();
-        const actionList = this.getActions();
-        let utility = 0;
-        for (const action of actionList) {
-            utility = utility + this.computeUtility(state, action);
+        const utilities = this.getAllActionUtilities(state);
+        let utilitySum = 0;
+        for (const actionUtility of utilities) {
+            utilitySum += actionUtility.value;
         }
         const probabilityList = [];
-        for (const action of actionList) {
-            const probability = this.computeUtility(state, action) / utility;
-            const newActionProbability: IActionProbability = {
-                action, probability
-
+        for (const actionUtility of utilities) {
+            const probability = actionUtility.value / utilitySum;
+            const newActionProbability: IActionValue = {
+                action: actionUtility.action,
+                value: probability
             };
             probabilityList.push(newActionProbability);
         }
-        probabilityList.sort((a, b) => b.probability - a.probability);
+        probabilityList.sort((a: IActionValue, b: IActionValue) =>
+                b.value - a.value);
         return probabilityList;
     }
     /**
@@ -234,16 +298,22 @@ export default class ActionDecider {
      *          target, a function caling the targetedaction on the
      *          given target will be returned.
      */
-    public decideAction(state: any, random: number = Math.random()): Action {
-        const sortedListOfActions = this.getProbabilities(state);
-        let runningSum = 0;
-        for (const actionProbability of sortedListOfActions) {
-            runningSum += actionProbability.probability;
+    public decideAction(state: any, random: number = Math.random()): UntargetedActionFunction {
+        if (this.actions.size === 0) {
+            throw new Error("Supply at least one action before calling decideAction");
+        }
 
-            if (runningSum > random) {
+        const sortedListOfActionsByProbability = this.getProbabilities(state);
+        console.log(sortedListOfActionsByProbability);
+        let runningSum = 0;
+        for (const actionProbability of sortedListOfActionsByProbability) {
+            runningSum += actionProbability.value;
+
+            if (runningSum >= random) {
                 return actionProbability.action;
             }
         }
+        return sortedListOfActionsByProbability[0].action;
 
     }
 }

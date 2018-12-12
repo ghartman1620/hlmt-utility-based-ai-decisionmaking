@@ -1,7 +1,6 @@
 import { should } from "chai";
 import "mocha";
 import ActionDecider from "../src/action-decider";
-import { UntargetedAction } from "../src/action-decider";
 import {
     BinaryNumericInputResponseCurve,
     LinearResponseCurve,
@@ -51,6 +50,9 @@ function ghostGoLeft(state: ILineManGameState, ghost: number): void {
     state.ghosts[ghost].position--;
 }
 function ghostGoRight(state: ILineManGameState, ghost: number): void {
+    if (ghost >= state.ghosts.length) {
+        throw new Error("No such ghost: " + ghost);
+    }
     state.ghosts[ghost].position++;
 }
 
@@ -99,14 +101,14 @@ describe("In LineMan, with actions selected by ActionDecider", () => {
         // go left, or go right, in the direction of LineMan.
         for (const ghost of state.ghosts) {
             const ad: ActionDecider = new ActionDecider();
-
+            const ghostNum = i;
             // The action goLeft for this ghost
             const goLeft = (state1: ILineManGameState) => {
-                ghostGoLeft(state1, i);
+                ghostGoLeft(state1, ghostNum);
             };
             // The action goRight for this ghost
             const goRight = (state1: ILineManGameState) => {
-                ghostGoRight(state1, i);
+                ghostGoRight(state1, ghostNum);
             };
             ad.addAction(goLeft);
             ad.addAction(goRight);
@@ -114,11 +116,14 @@ describe("In LineMan, with actions selected by ActionDecider", () => {
                 // is 0 if they are equal
                 // is positive if lineMan has a larger position than the ith ghost - lineMan is to the right
                 // is negative if lineMan has a smaller position than the ith ghost - lineMan is to the left
-            ad.addAxisForAction(goLeft, (s: ILineManGameState) => s.lineMan.position - s.ghosts[i].position,
+            ad.addAxisForAction(goLeft, (s: ILineManGameState) => s.lineMan.position -
+                         s.ghosts[ghostNum].position,
                     new BinaryNumericInputResponseCurve(0, true));
-            ad.addAxisForAction(goRight, (s: ILineManGameState) => s.lineMan.position - s.ghosts[i].position,
+            ad.addAxisForAction(goRight, (s: ILineManGameState) => s.lineMan.position -
+                         s.ghosts[ghostNum].position,
                     new BinaryNumericInputResponseCurve(0));
             ghostDeciders.push(ad);
+            // useful comment below
             // Add
             i++;
         }
@@ -163,22 +168,22 @@ describe("In LineMan, with actions selected by ActionDecider", () => {
         let i: number = 0;
         for (const ghost of state.ghosts) {
             const ad: ActionDecider = new ActionDecider();
-
+            const ghostNum = i;
             // The action goLeft for this ghost
             const goLeft = (state1: ILineManGameState) => {
-                ghostGoLeft(state1, i);
+                ghostGoLeft(state1, ghostNum);
             };
             // The action goRight for this ghost
             const goRight = (state1: ILineManGameState) => {
-                ghostGoRight(state1, i);
+                ghostGoRight(state1, ghostNum);
             };
             ad.addAction(goLeft);
             ad.addAction(goRight);
             ad.addAxisForAction(goLeft, (s: ILineManGameState) =>
-                            (s.lineMan.poweredUp && s.lineMan.position < s.ghosts[i].position) ? 1 : 0,
+                            (s.lineMan.poweredUp && s.lineMan.position > s.ghosts[ghostNum].position) ? 1 : 0,
                     new BinaryNumericInputResponseCurve(.5));
             ad.addAxisForAction(goRight, (s: ILineManGameState) =>
-                            (s.lineMan.poweredUp && s.lineMan.position >= s.ghosts[i].position) ? 1 : 0,
+                            (s.lineMan.poweredUp && s.lineMan.position < s.ghosts[ghostNum].position) ? 1 : 0,
                     new BinaryNumericInputResponseCurve(.5));
             ghostDeciders.push(ad);
             // Add
@@ -189,11 +194,38 @@ describe("In LineMan, with actions selected by ActionDecider", () => {
         ghostDeciders[0].decideAction(state, 0)(state);
         ghostDeciders[1].decideAction(state, 0)(state);
         state.ghosts[0].position.should.equal(3);
-        state.ghosts[0].position.should.equal(-3);
+        state.ghosts[1].position.should.equal(-3);
+
+        // Hey! we can divide by 0 if the utility of every action is 0.
+        // Let's write a test that makes this error happen.
+        const degenerateState: ILineManGameState = {
+            ghostHome: 5,
+            ghosts: [
+                {
+                    eaten: false,
+                    hunger: 0,
+                    position: 0
+                },
+                {
+                    eaten: false,
+                    hunger: 0,
+                    position: 0,
+                }
+            ],
+            lineMan: {
+                position: 0,
+                poweredUp: true
+            },
+            powerUps: [],
+            vegetables: []
+        };
+        // We don't care what action is picked in this case,
+        // just that some action is performed and we didn't crash.
+        ghostDeciders[0].decideAction(degenerateState, 1)(degenerateState);
+        degenerateState.ghosts[0].position.should.not.equal(0);
     });
     it("Ghosts should consider LineMan's proximity and the proximity " +
         "of each Vegetable and decide a vegetable or LineMan to pursue", () => {
-        
         const ghostActions: ActionDecider = new ActionDecider();
         // Go at a vegetable. This is a targeted action.
         const ghostGoAtAndEatVegetable = (gameState: ILineManGameState, vegetable: number) => {
@@ -204,7 +236,7 @@ describe("In LineMan, with actions selected by ActionDecider", () => {
             } else {
                 // Eat this vegetable. Get 20 hunger, and remove it.
                 gameState.ghosts[0].hunger += 20;
-                gameState.vegetables.splice(gameState.vegetables.indexOf(vegetable));
+                gameState.vegetables.splice(gameState.vegetables.indexOf(vegetable), 1);
             }
         };
         // Go at LineMan. This is an untargeted action. While it seems like it would be targeted
@@ -228,12 +260,12 @@ describe("In LineMan, with actions selected by ActionDecider", () => {
             (gameState: ILineManGameState) => Math.abs(gameState.lineMan.position - gameState.ghosts[0].position),
             // Should be more utility of going at LineMan as we're closer, because we can see LineMan
             // and want to attack LineMan
-            new LinearResponseCurve(0, 10, -1));
+            new LinearResponseCurve(0, 10, -1, 1));
         ghostActions.addAxisForAction(ghostGoAtLineMan,
             // Whether or not LineMan is powered up
-            (gameState: ILineManGameState) => gameState.lineMan.poweredUp ? 1 : 0,
+            (gameState: ILineManGameState) => gameState.lineMan.poweredUp ? 0 : 1,
             // Invert because if LineMan is powered up should have utility 0. Otherwise utility 1
-            new BinaryNumericInputResponseCurve(.5, true));
+            new BinaryNumericInputResponseCurve(.5));
         // We might decide to go eat a vegetable if:
         // - There is a vegetable near
         // - Our hunger is low (using logistic curve,
@@ -247,20 +279,35 @@ describe("In LineMan, with actions selected by ActionDecider", () => {
             (gameState: ILineManGameState) => gameState.ghosts[0].hunger,
             new LogisticResponseCurve(0, 100, 10));
         const state: ILineManGameState  = {
-                ghostHome: -5,
-                ghosts: [
-                    {
-                        eaten: false,
-                        hunger: 50,
-                        position: 5
-                    }
-                ],
-                lineMan: {
-                    position: 0,
-                    poweredUp: true
-                },
-                powerUps: [],
-                vegetables: [2, 6, 8]
-            };
+            ghostHome: -5,
+            ghosts: [
+                {
+                    eaten: false,
+                    hunger: 50,
+                    position: 5
+                }
+            ],
+            lineMan: {
+                position: 5,
+                poweredUp: true
+            },
+            powerUps: [],
+            vegetables: [2, 6, 9]
+        };
+        // const action = ghostActions.decideAction(state, 0);
+        // action(state);
+        // equiv to
+        ghostActions.decideAction(state, 0)(state);
+        state.ghosts[0].position.should.equal(6);
+        ghostActions.decideAction(state, 0)(state);
+        state.ghosts[0].position.should.equal(6);
+        state.ghosts[0].hunger.should.equal(70);
+        state.vegetables.should.not.contain(6);
+        state.vegetables.length.should.equal(2);
+        ghostActions.decideAction(state, 0)(state);
+        state.ghosts[0].position.should.equal(7);
+        state.lineMan.poweredUp = false;
+        ghostActions.decideAction(state, 0)(state);
+        state.ghosts[0].position.should.equal(6);
     });
 });
