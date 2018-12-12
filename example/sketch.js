@@ -1,50 +1,60 @@
 function setup(){
     createCanvas(500, 500);
 }
-let gameState = {
-    badGuys: [
-        {
-            x: 100,
-            y: 100
-        },
-        {
-            x: 200, 
-            y: 100
-        },
-        {
-            x: 300,
-            y: 100
-        }
-    ],
-    goodGuys: [
-        {
-            x: 100,
-            y: 300
-        },
-        {
-            x: 200,
-            y: 300
-        },
-        {
-            x: 300,
-            y: 300
-        }
-    ]
-}
-function drawState(state){
-    stroke(255, 0, 0);
-    for(const guy of state.goodGuys){
-        ellipse(guy.x, guy.y, 25, 25);
-        line(guy.x + 12.5, guy.y, guy.x+12.5, guy.y-15);
-        line(guy.x - 7, guy.y - 4, guy.x-2, guy.y-2);
-        line(guy.x + 7, guy.y - 4, guy.x+2, guy.y-2);
+
+class Dude{
+    constructor(xcoord, ycoord, health = 100, attackDamage = 5, speed = 2, range= 1){
+        this.xCoordinate = xcoord;
+        this.yCoordinate = ycoord;
+        this.health = health;
+        this.attackDamage = attackDamage;
+        this.speed = speed;
+        this.range = range;
     }
-    stroke(0, 0, 255);
-    for(const guy of state.badGuys){
-        ellipse(guy.x, guy.y, 25, 25);
-        line(guy.x + 12.5, guy.y, guy.x+12.5, guy.y+15);
-        line(guy.x - 7, guy.y - 4, guy.x-2, guy.y-2);
-        line(guy.x + 7, guy.y - 4, guy.x+2, guy.y-2);
+
+    heal(){
+        this.health += 10;
+    }
+
+    attack(opponentDude){
+        opponentDude.health -= this.attackDamage;
+    }
+
+    move(xcoord, ycoord){
+        directionX = xcoord - this.xCoordinate;
+        directionY = ycoord - this.yCoordinate;
+        if(directionX < 0){
+            this.xCoordinate = this.xCoordinate + this.speed;
+        }
+        else{
+            this.xCoordinate = this.xCoordinate - this.speed;
+        }
+        if(directionY < 0){
+            this.yCoordinate = this.yCoordinate + this.speed;
+        }
+        else{
+            this.yCoordinate = this.yCoordinate - this.speed;
+        }
+    }
+    draw(){
+        fill(87)
+        ellipse(this.xCoordinate, this.yCoordinate, 50, 50)
+    }
+}
+
+// challengerCount = Math.round(Math.random()*5)
+// while(challengerCount != 0){
+
+// }
+
+let gameState = [
+    new Dude(100, 200),
+    new Dude(400, 200)
+    
+]
+function drawState(state){
+    for(var dude of state){
+        dude.draw()
     }
 }
 let ups = 20;
@@ -56,14 +66,9 @@ function draw(){
     drawState(gameState);
     if (frame === interval){
         frame = 0;
-        for(const guy of gameState.goodGuys){
-        guy.x += (Math.random() - .5)
-        guy.y += (Math.random() - .7)
-        
-        }
-        for(const guy of gameState.badGuys){
-            guy.x += (Math.random() - .5)
-            guy.y += (Math.random() - .3)
+        for(const guy of gameState){
+            guy.xCoordinate += (Math.random() - .5);
+            guy.yCoordinate += (Math.random() - .7); 
         }
     }
     frame++;
