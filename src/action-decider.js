@@ -17,7 +17,6 @@ var Axis = (function () {
     }
     return Axis;
 }());
-console.log("Hello from action decider");
 var AbstractAction = (function () {
     function AbstractAction() {
         if (new .target === AbstractAction) {
@@ -99,8 +98,11 @@ var UntargetedAction = (function (_super) {
 }(AbstractAction));
 var ActionDecider = (function () {
     function ActionDecider() {
-        this.actions = new Map();
+        this.actions = [];
     }
+    ActionDecider.prototype.findAction = function (action) {
+        return this.actions.find(function (val) { return val.actionFn === action; }).absAction;
+    };
     /**
      * Adds an action for potential selection by this
      * ActionDecider. To be considered in
@@ -109,7 +111,7 @@ var ActionDecider = (function () {
      * @param action The action to be added.
      */
     ActionDecider.prototype.addAction = function (action) {
-        this.actions.set(action, new UntargetedAction(action, []));
+        this.actions.push({ actionFn: action, absAction: new UntargetedAction(action, []) });
         // throw new Error("Not implemented!");
     };
     /**
@@ -121,21 +123,20 @@ var ActionDecider = (function () {
      * @param target A function on state returning an iterable.
      */
     ActionDecider.prototype.addTargetedAction = function (action, targets) {
-        this.actions.set(action, new TargetedAction(action, targets));
+        this.actions.push({ actionFn: action, absAction: new TargetedAction(action, targets) });
     };
     /**
      * @returns List of actions added so far.
      */
     ActionDecider.prototype.getActions = function () {
-        var actionArray = Array.from(this.actions.keys());
-        return actionArray;
+        return this.actions.map(function (val) { return val.actionFn; });
     };
     /**
      * Gets the list of axis associated with a particular action.
      * @param action The action to get axis for
      */
     ActionDecider.prototype.getAxisForAction = function (action) {
-        return this.actions.get(action).axes;
+        return this.findAction(action).axes;
     };
     /**
      * Adds an axis for an action.
@@ -146,7 +147,7 @@ var ActionDecider = (function () {
      */
     ActionDecider.prototype.addAxisForAction = function (action, get, curve) {
         var newAxis = new Axis(get, curve);
-        this.actions.get(action).addAxis(newAxis);
+        this.findAction(action).addAxis(newAxis);
     };
     /**
      * Add an axis for a targeted action.
@@ -159,13 +160,13 @@ var ActionDecider = (function () {
      */
     ActionDecider.prototype.addTargetedAxisForAction = function (action, get, curve) {
         var newAxis = new Axis(get, curve);
-        if (this.actions.get instanceof UntargetedAction) {
+        if (this.findAction(action) instanceof UntargetedAction) {
             throw new Error("Cannot add targeted axes to untargeted actions");
         }
-        this.actions.get(action).addTargetedAxis(newAxis);
+        this.findAction(action).addTargetedAxis(newAxis);
     };
     ActionDecider.prototype.computeUntargetedUtility = function (state, action) {
-        return this.actions.get(action).getUtilities(state)[0].value;
+        return this.findAction(action).getUtilities(state)[0].value;
     };
     // public computeTargetedUtilities(state: any, action: TargetedAction): IActionValue[] {
     //     for (const axis of this.actions.get(action)) { // for targeted action, calculate utility of it in all axis
@@ -173,9 +174,15 @@ var ActionDecider = (function () {
     // }
     ActionDecider.prototype.getAllActionUtilities = function (state) {
         var actionUtilities = [];
-        for (var _i = 0, _a = this.actions.values(); _i < _a.length; _i++) {
-            var action = _a[_i];
-            actionUtilities = actionUtilities.concat(action.getUtilities(state));
+        // Yes, TSLint. I, too, would like to use a for-of loop.
+        // But unfortunately, SOMEBODY doesn't fucking like for-of loops
+        // on fucking maps. So now i'm fucking suspicious and am going to use
+        // fucking int i = 0 i < length i++ like a fucking plebian
+        // becuase nothing fucking works the way it's supposed to because we're
+        // in fucking crazy javascript land.
+        for (var i = 0; i < this.actions.length; i++) {
+            var val = this.actions[i];
+            actionUtilities = actionUtilities.concat(val.absAction.getUtilities(state));
         }
         return actionUtilities;
     };
@@ -239,11 +246,10 @@ var ActionDecider = (function () {
      */
     ActionDecider.prototype.decideAction = function (state, random) {
         if (random === void 0) { random = Math.random(); }
-        if (this.actions.size === 0) {
+        if (this.actions.length === 0) {
             throw new Error("Supply at least one action before calling decideAction");
         }
         var sortedListOfActionsByProbability = this.getProbabilities(state);
-        console.log(sortedListOfActionsByProbability);
         var runningSum = 0;
         for (var _i = 0, sortedListOfActionsByProbability_1 = sortedListOfActionsByProbability; _i < sortedListOfActionsByProbability_1.length; _i++) {
             var actionProbability = sortedListOfActionsByProbability_1[_i];
