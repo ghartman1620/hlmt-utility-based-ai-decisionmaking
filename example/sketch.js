@@ -8,7 +8,7 @@ const Team = {
 }
 
 class Dude{
-    constructor(xcoord, ycoord, team, health = 100, attackDamage = 5, speed = 2, range= 1){
+    constructor(xcoord, ycoord, team, health = 100, attackDamage = 5, speed = 4, range= 1){
         this.xCoordinate = xcoord;
         this.yCoordinate = ycoord;
         this.health = health;
@@ -21,33 +21,78 @@ class Dude{
         this.team = team;
     }
 
-    heal(){
+
+    heal(Castle){
+        if (this.team = Team.red)
+        //Castle = gameState.get(redCastle);
+        else
+        //Castle = gameState.get(blueCastle);
+
+        if ((Castle.xCoordinate - 40 <= this.xCoordinate <= Castle.xCoordinate + 40) &&
+           (Castle.yCoordinate - 40 <= this.yCoordinate <= Castle.yCoordinate + 40))
         this.health += 10;
+        else
+            this.move(Castle.xCoordinate,Castle.yCoordinate);
+    }
+
+    distance(x1,y1,x2,y2) {
+        return Math.sqrt(Math.pow((x2-x1),2) + Math.pow((y2-y1),2))
+    }
+
+    goToFriend(team) {
+        let minDistance = 0;
+        let friendXCoordinate = 0;
+        let friendYCoordinate = 0;
+        for (friend of team) {
+            let currentDistance = this.distance(this.xCoordinate,this.yCoordinate
+                        ,friend.xCoordinate,friend.yCoordinate);
+            if (currentDistance < minDistance)
+                {
+                  minDistance = currentDistance;
+                  friendXCoordinate = friend.xCoordinate;
+                  friendYCoordinate = friend.yCoordinate
+                }
+        }
+        this.move(friendXCoordinate,friendYCoordinate);
     }
 
     attack(opponentDude){
-        opponentDude.health -= this.attackDamage;
+        //If you are within range to attack
+        if (this.distance(this.xCoordinate,this.yCoordinate,
+                           opponentDude.xCoordinate,opponentDude.yCoordinate) <= this.range)
+                opponentDude.health -= this.attackDamage;
+        else 
+            this.move(opponentDude.xCoordinate,opponentDude.yCoordinate);
     }
 
     move(xcoord, ycoord){
-        let directionX = xcoord - this.xCoordinate;
-        let directionY = ycoord - this.yCoordinate;
-        if(directionX < -10 | directionX > 10){
-            if(directionX < 0){
-                this.xCoordinate = this.xCoordinate - this.speed;
+        let distance = this.distance(this.xCoordinate,this.yCoordinate,xcoord,ycoord);
+        let deltaY = Math.abs(this.yCoordinate - ycoord);
+        let deltaX = Math.abs(this.xCoordinate - xcoord);
+
+        let iy = this.speed * (deltaY/distance);
+        let ix = this.speed * (deltaX/distance);
+
+        
+            //Distance can be adjusted to stop closer/farther from target
+            if(distance > 70) {
+                if ((xcoord < this.xCoordinate) && (ycoord < this.yCoordinate)) {
+                    this.xCoordinate -= ix;
+                    this.yCoordinate -= iy;
+                }
+                if ((xcoord > this.xCoordinate) && (ycoord > this.yCoordinate)) {
+                    this.xCoordinate += ix;
+                    this.yCoordinate += iy;
+                }
+                if ((xcoord > this.xCoordinate) && (ycoord < this.yCoordinate)) {
+                    this.xCoordinate += ix;
+                    this.yCoordinate -= iy;
+                }
+                if ((xcoord < this.xCoordinate) && (ycoord > this.yCoordinate)) {
+                    this.xCoordinate -= ix;
+                    this.yCoordinate += iy;
+                }
             }
-            else if(directionX > 0){
-                this.xCoordinate = this.xCoordinate + this.speed;
-            }
-        }
-        if(directionY < -10 | directionY > 10){
-            if(directionY < 0){
-                this.yCoordinate = this.yCoordinate - this.speed;
-            }
-            else if(directionX > 0){
-                this.yCoordinate = this.yCoordinate + this.speed;
-            }
-        }
     }
 
     retreat(team){
@@ -94,7 +139,7 @@ class Castle{
 challengerCount = Math.round(Math.random()*3 + 2);
 redTeam = []
 blueTeam = []
-let redCastle = new Castle(60, Math.random() * 60 + 80, Team.Red);
+let redCastle = new Castle(Math.random()*400, Math.random() * 60 + 80, Team.Red);
 let blueCastle = new Castle(60, Math.random() * 60 + 420, Team.Blue);
 while(challengerCount != 0){
 
@@ -153,7 +198,9 @@ function draw(){
             gameState.blueTeam[0].heal();
         }
 
-        gameState.blueTeam[0].move(250, 250);
+        gameState.blueTeam[0].move(redCastle.xCoordinate, redCastle.yCoordinate);
+        console.log("X coor is: " + blueTeam[0].xCoordinate);
+        console.log("Y coor is: " + blueTeam[0].yCoordinate);
 
     }
     frame++;
