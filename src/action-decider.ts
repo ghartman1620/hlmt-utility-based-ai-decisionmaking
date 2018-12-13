@@ -55,7 +55,7 @@ export type TargetedActionFunction = (state: any, target: any) => void;
 // TargetedAction and a TargetFunction.
 
 type ActionFunction = UntargetedActionFunction | TargetedActionFunction;
-
+console.log("Hello from action decider");
 class AbstractAction {
     public axes: Axis[];
     public targetedAxes: Axis[];
