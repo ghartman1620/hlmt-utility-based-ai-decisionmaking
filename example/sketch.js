@@ -24,17 +24,21 @@ class Dude{
     move(xcoord, ycoord){
         let directionX = xcoord - this.xCoordinate;
         let directionY = ycoord - this.yCoordinate;
-        if(directionX < 0){
-            this.xCoordinate = this.xCoordinate - this.speed;
+        if(directionX < -10 | directionX > 10){
+            if(directionX < 0){
+                this.xCoordinate = this.xCoordinate - this.speed;
+            }
+            else if(directionX > 0){
+                this.xCoordinate = this.xCoordinate + this.speed;
+            }
         }
-        else if(directionX > 0){
-            this.xCoordinate = this.xCoordinate + this.speed;
-        }
-        if(directionY < 0){
-            this.yCoordinate = this.yCoordinate - this.speed;
-        }
-        else if(directionX > 0){
-            this.yCoordinate = this.yCoordinate + this.speed;
+        if(directionY < -10 | directionY > 10){
+            if(directionY < 0){
+                this.yCoordinate = this.yCoordinate - this.speed;
+            }
+            else if(directionX > 0){
+                this.yCoordinate = this.yCoordinate + this.speed;
+            }
         }
     }
 
@@ -49,6 +53,7 @@ class Dude{
             }
         }
     }
+    
     draw(){
         if(this.team == "red"){
             fill(255, 0, 0);
@@ -60,9 +65,29 @@ class Dude{
     }
 }
 
-challengerCount = Math.round(Math.random()*2 + 1);
+class Castle{
+    constructor(xcoord = 60, ycoord, team){
+        this.xCoordinate = xcoord;
+        this.yCoordinate = ycoord;
+        this.team = team;
+    }
+
+    draw(){
+        if(this.team == "red"){
+            fill(255, 0, 0);
+        }
+        if(this.team == "blue"){
+            fill(0, 0, 255);
+        }
+        rect(this.xCoordinate, this.yCoordinate,40,40);
+    }
+}
+
+challengerCount = Math.round(Math.random()*3 + 2);
 redTeam = []
 blueTeam = []
+let redCastle = new Castle(60, Math.random() * 60 + 80, "red");
+let blueCastle = new Castle(60, Math.random() * 60 + 420, "blue");
 while(challengerCount != 0){
 
     let redblueXCoord = Math.random() * 350 + 100;
@@ -78,17 +103,23 @@ while(challengerCount != 0){
     challengerCount--;
 }
 
+
 let gameState = {
     redTeam,
-    blueTeam
+    blueTeam,
+    redCastle,
+    blueCastle
 }
+
 function drawState(state){
     for(var dude of state.redTeam){
-        dude.draw()
+        dude.draw();
     }
     for(var dude of state.blueTeam){
-        dude.draw()
+        dude.draw();
     }
+    state.redCastle.draw();
+    state.blueCastle.draw();
 }
 let ups = 20;
 var interval = Math.floor(60/ups);  
@@ -115,7 +146,7 @@ function draw(){
 
         gameState.blueTeam[0].move(250, 250);
 
-        console.log(gameState.blueTeam[0]);
+        console.log('y ' + gameState.blueTeam[0].yCoordinate + ' x ' + gameState.blueTeam[0].xCoordinate);
     }
     frame++;
 }
