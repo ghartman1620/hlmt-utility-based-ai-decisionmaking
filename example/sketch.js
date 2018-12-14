@@ -1,5 +1,7 @@
+const width = 1000;
+const length = 1000;
 function setup(){
-    createCanvas(500, 500);
+    createCanvas(width, length);
 }
 
 const Team = {
@@ -11,7 +13,7 @@ function distance(x1, y1, x2, y2) {
 }
 
 class Dude{
-    constructor(id, xcoord, ycoord, team, health = 100, attackDamage = 5, speed = 2, range= 1) {
+    constructor(id, xcoord, ycoord, team, health = 100, attackDamage = 5, speed = 2, range= 50) {
         this.xCoordinate = xcoord;
         this.yCoordinate = ycoord;
         this.health = health;
@@ -44,12 +46,12 @@ class Dude{
         const minHealthDiff = -50;
         this.actionDecider.addAxisForAction(healAction, function(state){
             // get avg health of nearby enemies
-            const nearbyHealthSum = 0;
-            const nearbyEnemies = 0;
+            let nearbyHealthSum = 0;
+            let nearbyEnemies = 0;
             const enemyTeam = me.team == Team.Red ? state.blueTeam : state.redTeam;
             for(const enemy of enemyTeam) {
                 // enemy is nearby
-                if(distance(me.xCoordinate, me.yCoordinate, enemy.xCoordinate, enemy.yCoordinate) < 100) {
+                if(me.distance(me.xCoordinate, me.yCoordinate, enemy.xCoordinate, enemy.yCoordinate) < 100) {
                     nearbyHealthSum += enemy.health;
                     nearbyEnemies++;
                 }
@@ -153,8 +155,23 @@ class Dude{
     heal(){
         console.log("dude " + this.id + " is healing");
         this.health += 10;
+        let castle = null;
             //CHANGE TO CONDITIONAL MOVE LATER
-            this.move(Castle.xCoordinate,Castle.yCoordinate);
+        if (this.team === Team.Red)
+          {
+            castle = redCastle;
+          }
+        else 
+        {
+          castle = blueCastle;
+        }
+            if (((castle.xcoord - 40 <= this.xCoordinate) && (this.xCoordinate <= castle.xcoord + 40)) &&
+                ((castle.ycoord - 40 <= this.yCoordinate) && (this.yCoordinate <= castle.ycoord + 40)) &&
+                (this.health != 100)) {
+                    this.health += 10;
+                }
+            else
+                this.move(castle.xCoordinate,castle.yCoordinate);
     }
 
     distance(x1,y1,x2,y2) {
@@ -186,7 +203,6 @@ class Dude{
         else 
             this.move(opponentDude.xCoordinate,opponentDude.yCoordinate);
         console.log("dude " + this.id + " is attacking " + opponentDude.id);
-        opponentDude.health -= this.attackDamage;
     }
 
     move(xcoord, ycoord){
@@ -199,7 +215,7 @@ class Dude{
 
         
             //Distance can be adjusted to stop closer/farther from target
-            if(distance > 70) {
+            if(distance > 10) {
                 if ((xcoord < this.xCoordinate) && (ycoord < this.yCoordinate)) {
                     this.xCoordinate -= ix;
                     this.yCoordinate -= iy;
@@ -233,22 +249,16 @@ class Dude{
     
     draw(){
         if(this.team == Team.Red){
-            fill(255, 0, 0);
+            fill(155 + this.health, 0, 0);
         }
         if(this.team == Team.Blue){
-            fill(0, 0, 255);
+            fill(0, 0, 155 + this.health);
         }
-        ellipse(this.xCoordinate, this.yCoordinate, 50, 50);
+        ellipse(this.xCoordinate, this.yCoordinate, 20, 20);
     }
     update() {
-        try{
-            
-            this.currentAction(this.actionArg);   
-        }
-        catch(e){
-            console.log(this.currentAction);
-            throw e;
-        }
+        this.currentAction(this.actionArg); 
+        
     }
     think(gameState) {
         console.log("dude " + this.id + " is thinking");
@@ -326,6 +336,18 @@ var frame = 0;
 
 function draw(){
     background(255);
+
+    for (const dude of allDudes) {
+        if ((dude.health <= 0) || (dude.xCoordinate > width)  
+        || (dude.yCoordinate > length) || (dude.xCoordinate < 0) 
+        || (dude.yCoordinate < 0)) {
+            if (dude.team == Team.Red) {
+                redTeam.splice(redTeam.indexOf(dude),1);
+            }
+            else
+                blueTeam.splice(blueTeam.indexOf(dude),1);
+        }
+    } 
     drawState(gameState);
     if (frame === interval){
         frame = 0;
