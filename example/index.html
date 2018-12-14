@@ -7,5 +7,21 @@
     <script src="sketch.js"></script>
   </head>
   <body>
+      <form id="initform" onsubmit="initialize(event)">
+        <p>Team Initialization:</p>
+          <input type="radio" name="initType" value="random">Random<br>
+          <input type="radio" name="initType" value="sides" checked>Sides<br>
+          <input type="radio" name="initType" value="300">Like the movie 300 but with utility theory (ignores number of dudes input)<br>
+          
+          <input type="number" id="numDudes" value="100">Number of Dudes<br>
+          <button type="submit">Go</button>
+      </form>
+      <p style="color: blue;">Blue dudes are on the blue team attacking</p>
+      <p style="color: lightblue;">Light blue dudes are on the blue team healing</p>
+      <p style="color: red;">Pink dudes are on the red team attacking</p>
+      <p style="color: hotpink;">Red dudes are on the red team healing</p>
+      <p>White dudes are retreating</p>
+      
+      
   </body>
 </html>

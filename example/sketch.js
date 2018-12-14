@@ -1,6 +1,7 @@
 const width = 1000;
 const length = 1000;
 function setup(){
+    initialize();
     createCanvas(width, length);
 }
 
@@ -36,12 +37,12 @@ class Dude{
             state.allDudes[me.id].beginHealing(target);
         };
         this.actionDecider.addTargetedAction(healAction, function(state) {
-            return me.team == Team.Red ? state.redCastles : state.blueCastles;
+            return me.team === Team.Red ? state.redCastles : state.blueCastles;
         });
         
         // Heal if we're low on hp
         this.actionDecider.addAxisForAction(healAction, function(state) {
-            return state.allDudes[me.id].health;  
+            return me.health;  
         }, new QuadraticResponseCurve(0, 100, 1, 1));
         // Go to nearby castles
         this.actionDecider.addTargetedAxisForAction(healAction, function(state, castle){
@@ -83,20 +84,24 @@ class Dude{
         
         
         // We run away
-        const runAction = function(state) {
-            state.allDudes[me.id].beginRetreating();
-        };
-        this.actionDecider.addAction(runAction);
-        this.actionDecider.addAxisForAction(runAction, function(state) {
-            return state.allDudes[me.id].health;
-        }, new QuadraticResponseCurve(0, 25, 1, 1));
+        // But not if we're spartans!
+        if (initType !== "300" ||  this.team === Team.Red){
+            const runAction = function(state) {
+                state.allDudes[me.id].beginRetreating();
+            };
+            this.actionDecider.addAction(runAction);
+            this.actionDecider.addAxisForAction(runAction, function(state) {
+                return state.allDudes[me.id].health;
+            }, new QuadraticResponseCurve(0, 50, 1, 1));
+
+            this.actionDecider.addAxisForAction(runAction, function(state){
+                const us = me.team == Team.Red ? state.redTeam : state.blueTeam;
+                const them = me.team == Team.Red ? state.blueTeam : state.redTeam;
+                return them.length - us.length;
+
+            }, new LogisticResponseCurve(-20, 20, -20));
+        }
         
-        this.actionDecider.addAxisForAction(runAction, function(state){
-            const us = me.team == Team.Red ? state.redTeam : state.blueTeam;
-            const them = me.team == Team.Red ? state.blueTeam : state.redTeam;
-            return them.length - us.length;
-            
-        }, new LogisticResponseCurve(-5, 5, -20));
         
     }
 
@@ -129,10 +134,8 @@ class Dude{
     
 
     heal(castle){
-        // console.log("dude with health " + this.health +" healing");
         if (castle.contains(this)) {
-            console.log("I am healing and my hp is " + this.health);
-            this.health += 10/castle.dudeCount;
+            this.health += 10/castle.containedDudes();
         }
         else
             this.move(castle.xCoordinate, castle.yCoordinate);
@@ -152,8 +155,6 @@ class Dude{
         let deltaY = Math.abs(this.yCoordinate - ycoord);
         let deltaX = Math.abs(this.xCoordinate - xcoord);
         if(isNaN(dist)) {
-            console.log(xcoord);
-            console.log(ycoord);
             throw new Error("nan dist");
         }
         let iy = this.speed * (deltaY/dist);
@@ -182,7 +183,6 @@ class Dude{
     }
 
     retreat(){
-        // console.log("dude with health " + this.health + "retreating")
         let dir = this.team == Team.Red ? -1 : 1;
         this.yCoordinate += dir * this.speed;
     }
@@ -190,15 +190,19 @@ class Dude{
     draw(){
         let green  = 0;
         if(this.currentAction === this.retreat) {
-            green = 100;
+            fill(255, 255, 255);
         }
-        if(this.currentAction === this.heal) {
-            green = 255;
+        else if(this.currentAction === this.heal) {
+            if(this.team == Team.Red){
+                fill(255, 105, 180);
+            } else {
+                fill(173, 216, 230);
+            }
         }
-        if(this.team == Team.Red){
+        else if(this.team == Team.Red){
             fill(155 + this.health, green, 0);
         }
-        if(this.team == Team.Blue){
+        else if(this.team == Team.Blue){
             fill(0, green, 155 + this.health);
         }
         ellipse(this.xCoordinate, this.yCoordinate, 20, 20);
@@ -212,9 +216,7 @@ class Dude{
         // or if we're going to heal and dont have very much hp
         if(this.currentAction === this.retreat) return;
         if(this.currentAction === this.heal && this.health < 75) return;
-        if(this.currentAction === this.heal){
-            console.log("i am thinking again and my health is " + this.health);
-        }
+
         this.actionDecider.decideAction(gameState)(gameState);
         
               
@@ -230,7 +232,7 @@ class Castle{
     }
     // true if dude within this castle, false otherwise
     contains(dude) {
-        return (this.yCoordinate - 20 <= dude.xCoordinate) &&
+        return (this.xCoordinate - 20 <= dude.xCoordinate) &&
              (dude.xCoordinate <= this.xCoordinate + 20) &&
              (this.yCoordinate - 20 <= dude.yCoordinate) &&
              (dude.yCoordinate <= this.yCoordinate + 20)
@@ -258,39 +260,113 @@ class Castle{
     }
 }
 
-const redTeam = [];
-const blueTeam = [];
-const allDudes = [];
-let dudeId = -1;
-const redCastles = [];
-const blueCastles = [];
-for(let i = 0; i < 7; i++){
-    redCastles.push(new Castle(100 + Math.random() * 800, Math.random() * 60 + 80, Team.Red));
-    blueCastles.push(new Castle(100 + Math.random() * 800, Math.random() * 60 + 920, Team.Blue));   
+var gameState;
+var initType = null;
+
+function initialize(event){
+    if(event !== null && event !== undefined)event.preventDefault();
+    const initTypeElement = document.getElementsByName("initType");
+    // from https://stackoverflow.com/questions/9618504/how-to-get-the-selected-radio-button-s-value
+    for (var i = 0, length = initTypeElement.length; i < length; i++) {
+        if (initTypeElement[i].checked) {
+            // do whatever you want with the checked radio
+            initType = initTypeElement[i].value;
+
+            // only one radio can be logically checked, don't check the rest
+            break;
+        }
+    }
+    let numDudes = document.getElementById("numDudes").value;
+    const redTeam = [];
+    const blueTeam = [];
+    const allDudes = [];
+    const redCastles = [];
+    const blueCastles = [];
+    let dudeId = -1;
+    let bluePositionBaseY;
+    let bluePositionVarianceY;
+    let redPositionBaseY;
+    let redPositionVarianceY;
+    if(initType === "300"){
+        for(let i = 0; i < 7; i++){
+            let x = Math.random() * 200 + 400;
+            let y = Math.random() * 200 + 400;
+            blueCastles.push(new Castle(x, y, Team.Blue)); 
+        }
+        for(let i = 0; i < 7; i++){            
+            let theta = Math.random()*Math.PI*2;
+            let x = 500 + 500 * Math.cos(theta);
+            let y = 500 + 500 * Math.sin(theta);
+            redCastles.push(new Castle(x, y, Team.Red));
+        }
+        for(let i = 0; i < 300; i++){
+            let x = Math.random() * 200 + 400;
+            let y = Math.random() * 200 + 400;
+            let blueDude = new Dude(++dudeId, x, y, Team.Blue);
+            blueTeam.push(blueDude);
+            allDudes.push(blueDude);
+        }
+        for(let j = 0; j < 500; j++){
+            let theta = Math.random()*Math.PI*2.0;
+            let radius = 500 + Math.random() * 100;
+            let x = 500 + radius*Math.cos(theta);
+            let y = 500 + radius*Math.sin(theta);
+            
+            let redDude = new Dude(++dudeId, x, y, Team.Red);
+            redTeam.push(redDude);
+            allDudes.push(redDude);
+        }
+        gameState = {
+            redTeam,
+            blueTeam,
+            redCastles,
+            blueCastles,
+            allDudes
+        }
+    }
+    else {
+        if(initType === "random"){
+            bluePositionBaseY = 0;
+            bluePositionVarianceY = 1000;
+            redPositionBaseY = 0;
+            redPositionVarianceY = 1000;
+        }
+        else{ // sides
+            bluePositionBaseY = 920;
+            bluePositionVarianceY = 60;
+            redPositionBaseY = 20;
+            redPositionVarianceY = 60;
+        }
+
+        for(let i = 0; i < 7; i++){
+            redCastles.push(new Castle(Math.random() * 1000, Math.random() * redPositionVarianceY + redPositionBaseY, Team.Red));
+            blueCastles.push(new Castle(Math.random() * 1000, Math.random() * bluePositionVarianceY + bluePositionBaseY, Team.Blue)); 
+        }
+        for(let i = 0; i < numDudes; i++){
+
+            let redblueXCoord = Math.random() * 1000;
+            let redYCoord = Math.random() * redPositionVarianceY + redPositionBaseY;
+            let blueYCoord = Math.random() * bluePositionVarianceY + bluePositionBaseY;
+
+            let redDude = new Dude(++dudeId, redblueXCoord, redYCoord, Team.Red);
+            redTeam.push(redDude);
+
+            let blueDude = new Dude(++dudeId, redblueXCoord, blueYCoord, Team.Blue);
+            blueTeam.push(blueDude);
+            allDudes.push(redDude);
+            allDudes.push(blueDude);
+        }
+        gameState = {
+            redTeam,
+            blueTeam,
+            redCastles,
+            blueCastles,
+            allDudes
+        }
+    }
+    
 }
-for(let i = 0; i < 100; i++){
 
-    let redblueXCoord = Math.random() * 800 + 100;
-    let redYCoord = Math.random() * 60 + 80;
-    let blueYCoord = Math.random() * 60 + 920;
-
-    let redDude = new Dude(++dudeId, redblueXCoord, redYCoord, Team.Red);
-    redTeam.push(redDude);
-
-    let blueDude = new Dude(++dudeId, redblueXCoord, blueYCoord, Team.Blue);
-    blueTeam.push(blueDude);
-    allDudes.push(redDude);
-    allDudes.push(blueDude);
-}
-
-
-const gameState = {
-    redTeam,
-    blueTeam,
-    redCastles,
-    blueCastles,
-    allDudes
-}
 
 function drawState(state){
     
@@ -298,25 +374,40 @@ function drawState(state){
         castle.draw();
         castle.draw();
     }
-    for(var dude of state.redTeam.concat(state.blueTeam)){
-        dude.update();
-        dude.draw();
+    
+    for(var i = 0, j = 0; i < state.redTeam.length && j < state.blueTeam.length; i++){
+        state.redTeam[i].update();
+        state.redTeam[i].draw();
+        state.blueTeam[j].update();
+        state.blueTeam[j].draw();
+        
+        j++;
     }
 }
 
 var framesPerThink = 10;
 
 function draw(){
+    if(gameState === undefined) return;
     background(255);
+    fill(255);
+    strokeWeight(4);
+    rect(0, 0, width, length);
+    strokeWeight(2);
     for(const dude of gameState.allDudes){
         if (isNaN(dude.xCoordinate) || isNaN(dude.yCoordinate)){
-            console.log(dude);
             throw new Error("this dude has nan coordinate");
         }
     }
     if (gameState.redTeam.length === 0){
+        console.log("blue team wins");
+        fill(0, 0, 255);
+        textSize(40);
         text("blue team wins", 100, 100);
     } else if(gameState.blueTeam.length === 0){
+        console.log("red team wins");
+        textSize(40);
+        fill(255, 0, 0);
         text("red team wins", 100, 100);
     } else {
         for (const dude of gameState.redTeam.concat(gameState.blueTeam)) {
@@ -353,6 +444,5 @@ function draw(){
             const dude = aliveDudes[Math.floor(Math.random()*aliveDudes.length)];
             dude.think(gameState);
         }
-    }
-    
+    }   
 }
