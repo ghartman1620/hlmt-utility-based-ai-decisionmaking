@@ -13,7 +13,7 @@ function distance(x1, y1, x2, y2) {
 }
 
 class Dude{
-    constructor(id, xcoord, ycoord, team, health = 100, attackDamage = 5, speed = 2, range= 50) {
+    constructor(id, xcoord, ycoord, team, health = 100, attackDamage = 1, speed = 2, range= 50) {
         this.xCoordinate = xcoord;
         this.yCoordinate = ycoord;
         this.health = health;
@@ -153,8 +153,7 @@ class Dude{
     
 
     heal(){
-        console.log("dude " + this.id + " is healing");
-        this.health += 10;
+        this.health += 2;
         let castle = null;
             //CHANGE TO CONDITIONAL MOVE LATER
         if (this.team === Team.Red)
@@ -178,11 +177,12 @@ class Dude{
         return Math.sqrt(Math.pow((x2-x1),2) + Math.pow((y2-y1),2))
     }
 
-    goToFriend(team) {
+    goToFriend() {
+        const team = this.team === Team.Red ? gameState.redTeam : gameState.blueTeam; 
         let minDistance = 0;
         let friendXCoordinate = 0;
         let friendYCoordinate = 0;
-        for (friend of team) {
+        for (const friend of team) {
             let currentDistance = this.distance(this.xCoordinate,this.yCoordinate
                         ,friend.xCoordinate,friend.yCoordinate);
             if (currentDistance < minDistance)
@@ -202,7 +202,6 @@ class Dude{
                 opponentDude.health -= this.attackDamage;
         else 
             this.move(opponentDude.xCoordinate,opponentDude.yCoordinate);
-        console.log("dude " + this.id + " is attacking " + opponentDude.id);
     }
 
     move(xcoord, ycoord){
@@ -236,15 +235,9 @@ class Dude{
     }
 
     retreat(){
-        console.log("dude " + this.id + " is retreating");
         
         let dir = this.team == Team.Red ? -1 : 1;
         this.yCoordinate += dir * this.speed;
-    }
-    
-    goToFriend() {
-        console.log("dude " + this.id + " is going to friend");
-        // implement me!
     }
     
     draw(){
@@ -261,7 +254,6 @@ class Dude{
         
     }
     think(gameState) {
-        console.log("dude " + this.id + " is thinking");
         this.actionDecider.decideAction(gameState)(gameState);
     }
 }
@@ -284,7 +276,7 @@ class Castle{
     }
 }
 
-challengerCount = Math.round(Math.random()*3 + 2);
+challengerCount = Math.round(Math.random()*3 + 10);
 const redTeam = []
 const blueTeam = []
 const allDudes = [];
@@ -332,20 +324,21 @@ function drawState(state){
 
 let ups = 1;
 var interval = Math.floor(60/ups);  
-var frame = 0;
+var frame = interval;
 
 function draw(){
     background(255);
 
-    for (const dude of allDudes) {
+    for (const dude of gameState.redTeam.concat(gameState.blueTeam)) {
         if ((dude.health <= 0) || (dude.xCoordinate > width)  
         || (dude.yCoordinate > length) || (dude.xCoordinate < 0) 
         || (dude.yCoordinate < 0)) {
+
             if (dude.team == Team.Red) {
-                redTeam.splice(redTeam.indexOf(dude),1);
+                gameState.redTeam.splice(gameState.redTeam.indexOf(dude),1);
             }
             else
-                blueTeam.splice(blueTeam.indexOf(dude),1);
+                gameState.blueTeam.splice(gameState.blueTeam.indexOf(dude),1);
         }
     } 
     drawState(gameState);
