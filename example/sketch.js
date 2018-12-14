@@ -13,7 +13,7 @@ function distance(x1, y1, x2, y2) {
 }
 
 class Dude{
-    constructor(id, xcoord, ycoord, team, health = 100, attackDamage = 1, speed = 2, range= 50) {
+    constructor(id, xcoord, ycoord, team, health = 100, attackDamage = .5, speed = 2, range= 50) {
         this.xCoordinate = xcoord;
         this.yCoordinate = ycoord;
         this.health = health;
@@ -32,43 +32,25 @@ class Dude{
         const me = this;
         
         // We heal when our health is low, we're near the castle, and/or our enemies have more hp than it
-        const healAction = function(state) {
-            state.allDudes[me.id].beginHealing();
+        const healAction = function(state, target) {
+            state.allDudes[me.id].beginHealing(target);
         };
-        this.actionDecider.addAction(healAction);
+        this.actionDecider.addTargetedAction(healAction, function(state) {
+            return me.team == Team.Red ? state.redCastles : state.blueCastles;
+        });
         
         // Heal if we're low on hp
         this.actionDecider.addAxisForAction(healAction, function(state) {
             return state.allDudes[me.id].health;  
         }, new QuadraticResponseCurve(0, 100, 1, 1));
-        // Heal if our enemies have much more hp than us
-        const maxHealthDiff = 50;
-        const minHealthDiff = -50;
-        this.actionDecider.addAxisForAction(healAction, function(state){
-            // get avg health of nearby enemies
-            let nearbyHealthSum = 0;
-            let nearbyEnemies = 0;
-            const enemyTeam = me.team == Team.Red ? state.blueTeam : state.redTeam;
-            for(const enemy of enemyTeam) {
-                // enemy is nearby
-                if(me.distance(me.xCoordinate, me.yCoordinate, enemy.xCoordinate, enemy.yCoordinate) < 100) {
-                    nearbyHealthSum += enemy.health;
-                    nearbyEnemies++;
-                }
-            }
-            // no enemies => return min, the value that has a utility of 1 for this curve
-            if (nearbyEnemies === 0) {
-                return minHealthDiff;
-            }
-            nearbyHealthSum /= nearbyEnemies;
-            return me.health - nearbyHealthSum;
-        }, new LogisticResponseCurve(10));
-        
-        this.actionDecider.addAxisForAction(healAction, function(state) {
-            const castle = me.team == Team.Red ? state.redCastle : state.blueCastle;
+        // Go to nearby castles
+        this.actionDecider.addTargetedAxisForAction(healAction, function(state, castle){
             return distance(me.xCoordinate, me.yCoordinate, castle.xCoordinate, castle.yCoordinate);
-        }, new LinearResponseCurve(0, 1000, -.4, 1));
-        
+        }, new QuadraticResponseCurve(100, 500, 1, 1, .75));
+        // Go to castles without many dudes
+        this.actionDecider.addTargetedAxisForAction(healAction, function(state, castle){
+            return castle.dudeCount;
+        }, new LinearResponseCurve(0, 10, -1, 1));
         
         // We attack enemies
         const attackAction = function(state, target) {
@@ -83,17 +65,20 @@ class Dude{
         });
         
         this.actionDecider.addAxisForAction(attackAction, function(state){
-            return state.allDudes[me.id].health;
+            return me.health;
         }, new LogisticResponseCurve(0, 100, -10));
         
         this.actionDecider.addTargetedAxisForAction(attackAction, function(state, target){
-            return state.allDudes[target.id].health;
+            return target.health;
         }, new LinearResponseCurve(0, 100, -.25, 1));
-        
         this.actionDecider.addTargetedAxisForAction(attackAction, function(state, target){
-            const theirCastle = target.team == Team.Red ? state.redCastle : state.blueCastle;
-            return distance(target.xCoordinate, target.yCoordinate, theirCastle.xCoordinate, theirCastle.yCoordinate);
-        }, new QuadraticResponseCurve(0, 500, .75, .25));
+            return target.currenAction === target.retreat ? .5 : 1
+        }, new LinearResponseCurve(0, 1));
+        // this axis (that didn't pan out) was distance to target.
+        // instead, we replace it by not tending to attack dudes that are running
+//        this.actionDecider.addTargetedAxisForAction(attackAction, function(state, target) {
+//            return distance(me.xCoordinate, me.yCoordinate, target.xCoordinate, target.yCoordinate);
+//        }, new QuadraticResponseCurve(0, 600, .75, 1, .15));
         
         
         
@@ -104,7 +89,7 @@ class Dude{
         this.actionDecider.addAction(runAction);
         this.actionDecider.addAxisForAction(runAction, function(state) {
             return state.allDudes[me.id].health;
-        }, new QuadraticResponseCurve(0, 100, 1, 1));
+        }, new QuadraticResponseCurve(0, 25, 1, 1));
         
         this.actionDecider.addAxisForAction(runAction, function(state){
             const us = me.team == Team.Red ? state.redTeam : state.blueTeam;
@@ -112,92 +97,50 @@ class Dude{
             return them.length - us.length;
             
         }, new LogisticResponseCurve(-5, 5, -20));
-    
-        
-        // We go to friends
-        const goToFriendAction = function(state) {
-            state.allDudes[me.id].beginGoingToFriends();
-        };
-        this.actionDecider.addAction(goToFriendAction);
-        this.actionDecider.addAxisForAction(goToFriendAction, function(state) {
-            const myTeam = me.team == Team.Red ? state.redTeam : state.blueTeam;
-            let nearbyFriends = 0;
-            for(const friend of myTeam) {
-                // enemy is nearby
-                if(distance(me.xCoordinate, me.yCoordinate, friend.xCoordinate, friend.yCoordinate) < 500) {
-                    nearbyFriends++;
-                }
-            }
-            return nearbyFriends;
-        }, new LogisticResponseCurve(0, 5, 15));
         
     }
 
-    beginHealing() {
+    beginHealing(castle) {
+        // remove ourselves from castle if we were in a castle
+        if(this.currentAction == this.heal){
+            this.actionArg.dudeCount--;
+        }
         this.currentAction = this.heal;
-        this.actionArg = undefined;
+        castle.dudeCount ++;
+        this.actionArg = castle;
     }
     beginAttacking(opponentDude) {
+        // remove ourselves from castle if we were in a castle
+        if(this.currentAction == this.heal){
+            this.actionArg.dudeCount--;
+        }
         this.currentAction = this.attack;
         this.actionArg = opponentDude;
     }
     beginRetreating() {
+        // remove ourselves from castle if we were in a castle
+        if(this.currentAction == this.heal){
+            this.actionArg.dudeCount--;
+        }
         this.currentAction = this.retreat;
         this.actionArg = undefined;
     }
-    beginGoingToFriends() {
-        this.currentAction = this.goToFriend;
-        this.actionArg = undefined;
-    }
     
     
 
-    heal(){
-        this.health += 2;
-        let castle = null;
-            //CHANGE TO CONDITIONAL MOVE LATER
-        if (this.team === Team.Red)
-          {
-            castle = redCastle;
-          }
-        else 
-        {
-          castle = blueCastle;
+    heal(castle){
+        // console.log("dude with health " + this.health +" healing");
+        if (castle.contains(this)) {
+            console.log("I am healing and my hp is " + this.health);
+            this.health += 10/castle.dudeCount;
         }
-            if (((castle.xcoord - 40 <= this.xCoordinate) && (this.xCoordinate <= castle.xcoord + 40)) &&
-                ((castle.ycoord - 40 <= this.yCoordinate) && (this.yCoordinate <= castle.ycoord + 40)) &&
-                (this.health != 100)) {
-                    this.health += 10;
-                }
-            else
-                this.move(castle.xCoordinate,castle.yCoordinate);
-    }
-
-    distance(x1,y1,x2,y2) {
-        return Math.sqrt(Math.pow((x2-x1),2) + Math.pow((y2-y1),2))
-    }
-
-    goToFriend() {
-        const team = this.team === Team.Red ? gameState.redTeam : gameState.blueTeam; 
-        let minDistance = 0;
-        let friendXCoordinate = 0;
-        let friendYCoordinate = 0;
-        for (const friend of team) {
-            let currentDistance = this.distance(this.xCoordinate,this.yCoordinate
-                        ,friend.xCoordinate,friend.yCoordinate);
-            if (currentDistance < minDistance)
-                {
-                  minDistance = currentDistance;
-                  friendXCoordinate = friend.xCoordinate;
-                  friendYCoordinate = friend.yCoordinate
-                }
-        }
-        this.move(friendXCoordinate,friendYCoordinate);
+        else
+            this.move(castle.xCoordinate, castle.yCoordinate);
     }
 
     attack(opponentDude){
         //If you are within range to attack
-        if (this.distance(this.xCoordinate,this.yCoordinate,
+        if (distance(this.xCoordinate,this.yCoordinate,
                            opponentDude.xCoordinate,opponentDude.yCoordinate) <= this.range)
                 opponentDude.health -= this.attackDamage;
         else 
@@ -205,16 +148,20 @@ class Dude{
     }
 
     move(xcoord, ycoord){
-        let distance = this.distance(this.xCoordinate,this.yCoordinate,xcoord,ycoord);
+        let dist = distance(this.xCoordinate,this.yCoordinate,xcoord,ycoord);
         let deltaY = Math.abs(this.yCoordinate - ycoord);
         let deltaX = Math.abs(this.xCoordinate - xcoord);
-
-        let iy = this.speed * (deltaY/distance);
-        let ix = this.speed * (deltaX/distance);
+        if(isNaN(dist)) {
+            console.log(xcoord);
+            console.log(ycoord);
+            throw new Error("nan dist");
+        }
+        let iy = this.speed * (deltaY/dist);
+        let ix = this.speed * (deltaX/dist);
 
         
             //Distance can be adjusted to stop closer/farther from target
-            if(distance > 10) {
+            if(dist > 10) {
                 if ((xcoord < this.xCoordinate) && (ycoord < this.yCoordinate)) {
                     this.xCoordinate -= ix;
                     this.yCoordinate -= iy;
@@ -235,17 +182,24 @@ class Dude{
     }
 
     retreat(){
-        
+        // console.log("dude with health " + this.health + "retreating")
         let dir = this.team == Team.Red ? -1 : 1;
         this.yCoordinate += dir * this.speed;
     }
     
     draw(){
+        let green  = 0;
+        if(this.currentAction === this.retreat) {
+            green = 100;
+        }
+        if(this.currentAction === this.heal) {
+            green = 255;
+        }
         if(this.team == Team.Red){
-            fill(155 + this.health, 0, 0);
+            fill(155 + this.health, green, 0);
         }
         if(this.team == Team.Blue){
-            fill(0, 0, 155 + this.health);
+            fill(0, green, 155 + this.health);
         }
         ellipse(this.xCoordinate, this.yCoordinate, 20, 20);
     }
@@ -254,7 +208,16 @@ class Dude{
         
     }
     think(gameState) {
+        // don't reconsider what we're doing if we are retreating 
+        // or if we're going to heal and dont have very much hp
+        if(this.currentAction === this.retreat) return;
+        if(this.currentAction === this.heal && this.health < 75) return;
+        if(this.currentAction === this.heal){
+            console.log("i am thinking again and my health is " + this.health);
+        }
         this.actionDecider.decideAction(gameState)(gameState);
+        
+              
     }
 }
 
@@ -263,8 +226,27 @@ class Castle{
         this.xCoordinate = xcoord;
         this.yCoordinate = ycoord;
         this.team = team;
+        this.dudeCount = 0;
     }
-
+    // true if dude within this castle, false otherwise
+    contains(dude) {
+        return (this.yCoordinate - 20 <= dude.xCoordinate) &&
+             (dude.xCoordinate <= this.xCoordinate + 20) &&
+             (this.yCoordinate - 20 <= dude.yCoordinate) &&
+             (dude.yCoordinate <= this.yCoordinate + 20)
+    }
+    // number of dudes healing here
+    containedDudes() {
+        const dudes = this.team === Team.Red ? gameState.redTeam : gameState.blueTeam;
+        let numDudes = 0;
+        for(const dude of dudes) {
+            if(this.contains(dude)){
+                numDudes++;
+            }
+        }
+        return numDudes;
+    }
+    
     draw(){
         if(this.team == Team.Red){
             fill(255, 0, 0);
@@ -272,22 +254,25 @@ class Castle{
         if(this.team == Team.Blue){
             fill(0, 0, 255);
         }
-        rect(this.xCoordinate, this.yCoordinate,40,40);
+        rect(this.xCoordinate-20, this.yCoordinate-20,40,40);
     }
 }
 
-challengerCount = Math.round(Math.random()*3 + 10);
-const redTeam = []
-const blueTeam = []
+const redTeam = [];
+const blueTeam = [];
 const allDudes = [];
 let dudeId = -1;
-let redCastle = new Castle(60, Math.random() * 60 + 80, Team.Red);
-let blueCastle = new Castle(60, Math.random() * 60 + 420, Team.Blue);
-while(challengerCount != 0){
+const redCastles = [];
+const blueCastles = [];
+for(let i = 0; i < 7; i++){
+    redCastles.push(new Castle(100 + Math.random() * 800, Math.random() * 60 + 80, Team.Red));
+    blueCastles.push(new Castle(100 + Math.random() * 800, Math.random() * 60 + 920, Team.Blue));   
+}
+for(let i = 0; i < 100; i++){
 
-    let redblueXCoord = Math.random() * 350 + 100;
+    let redblueXCoord = Math.random() * 800 + 100;
     let redYCoord = Math.random() * 60 + 80;
-    let blueYCoord = Math.random() * 60 + 420;
+    let blueYCoord = Math.random() * 60 + 920;
 
     let redDude = new Dude(++dudeId, redblueXCoord, redYCoord, Team.Red);
     redTeam.push(redDude);
@@ -296,67 +281,78 @@ while(challengerCount != 0){
     blueTeam.push(blueDude);
     allDudes.push(redDude);
     allDudes.push(blueDude);
-    challengerCount--;
 }
 
 
 const gameState = {
     redTeam,
     blueTeam,
-    redCastle,
-    blueCastle,
+    redCastles,
+    blueCastles,
     allDudes
 }
 
 function drawState(state){
-    for(var dude of state.redTeam){
+    
+    for(var castle of state.redCastles.concat(state.blueCastles)){
+        castle.draw();
+        castle.draw();
+    }
+    for(var dude of state.redTeam.concat(state.blueTeam)){
         dude.update();
         dude.draw();
     }
-    for(var dude of state.blueTeam){
-        dude.update();
-        dude.draw();
-    }
-    state.redCastle.draw();
-    state.blueCastle.draw();
 }
 
-
-let ups = 1;
-var interval = Math.floor(60/ups);  
-var frame = interval;
+var framesPerThink = 10;
 
 function draw(){
     background(255);
-
-    for (const dude of gameState.redTeam.concat(gameState.blueTeam)) {
-        if ((dude.health <= 0) || (dude.xCoordinate > width)  
-        || (dude.yCoordinate > length) || (dude.xCoordinate < 0) 
-        || (dude.yCoordinate < 0)) {
-
-            if (dude.team == Team.Red) {
-                gameState.redTeam.splice(gameState.redTeam.indexOf(dude),1);
-            }
-            else
-                gameState.blueTeam.splice(gameState.blueTeam.indexOf(dude),1);
+    for(const dude of gameState.allDudes){
+        if (isNaN(dude.xCoordinate) || isNaN(dude.yCoordinate)){
+            console.log(dude);
+            throw new Error("this dude has nan coordinate");
         }
-    } 
-    drawState(gameState);
-    if (frame === interval){
-        frame = 0;
-        // for(const guy of gameState.redTeam){
-        //     guy.xCoordinate += (Math.random() - .5);
-        //     guy.yCoordinate += (Math.random() - .7); 
-        // }
-        // for(const guy of gameState.blueTeam){
-        //     guy.xCoordinate += (Math.random() - .5);
-        //     guy.yCoordinate += (Math.random() - .7); 
-        // }
+    }
+    if (gameState.redTeam.length === 0){
+        text("blue team wins", 100, 100);
+    } else if(gameState.blueTeam.length === 0){
+        text("red team wins", 100, 100);
+    } else {
+        for (const dude of gameState.redTeam.concat(gameState.blueTeam)) {
+            if ((dude.health <= 0) || (dude.xCoordinate > width)  
+            || (dude.yCoordinate > length) || (dude.xCoordinate < 0) 
+            || (dude.yCoordinate < 0)) {
 
-        for(const dude of gameState.allDudes){
+                if (dude.team == Team.Red) {
+                    gameState.redTeam.splice(gameState.redTeam.indexOf(dude),1);
+                }
+                else
+                    gameState.blueTeam.splice(gameState.blueTeam.indexOf(dude),1);
+            }
+        } 
+        drawState(gameState);
+//        if (frame === interval){
+//            frame = 0;
+//            // for(const guy of gameState.redTeam){
+//            //     guy.xCoordinate += (Math.random() - .5);
+//            //     guy.yCoordinate += (Math.random() - .7); 
+//            // }
+//            // for(const guy of gameState.blueTeam){
+//            //     guy.xCoordinate += (Math.random() - .5);
+//            //     guy.yCoordinate += (Math.random() - .7); 
+//            // }
+//
+//            for(const dude of gameState.allDudes){
+//                dude.think(gameState);
+//            }
+//
+//        }
+        const aliveDudes = gameState.redTeam.concat(gameState.blueTeam);
+        for(let i = 0; i < aliveDudes.length/framesPerThink; i++){
+            const dude = aliveDudes[Math.floor(Math.random()*aliveDudes.length)];
             dude.think(gameState);
         }
-
     }
-    frame++;
+    
 }
