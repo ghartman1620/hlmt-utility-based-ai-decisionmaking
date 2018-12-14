@@ -53,7 +53,6 @@ var AbstractResponseCurve = (function () {
     };
     return AbstractResponseCurve;
 }());
-exports.AbstractResponseCurve = AbstractResponseCurve;
 var LinearResponseCurve = (function (_super) {
     __extends(LinearResponseCurve, _super);
     /**
@@ -86,7 +85,6 @@ var LinearResponseCurve = (function (_super) {
     };
     return LinearResponseCurve;
 }(AbstractResponseCurve));
-exports.LinearResponseCurve = LinearResponseCurve;
 var QuadraticResponseCurve = (function (_super) {
     __extends(QuadraticResponseCurve, _super);
     /**
@@ -121,7 +119,6 @@ var QuadraticResponseCurve = (function (_super) {
     };
     return QuadraticResponseCurve;
 }(AbstractResponseCurve));
-exports.QuadraticResponseCurve = QuadraticResponseCurve;
 var LogisticResponseCurve = (function (_super) {
     __extends(LogisticResponseCurve, _super);
     /**
@@ -148,7 +145,6 @@ var LogisticResponseCurve = (function (_super) {
     };
     return LogisticResponseCurve;
 }(AbstractResponseCurve));
-exports.LogisticResponseCurve = LogisticResponseCurve;
 var LogitResponseCurve = (function (_super) {
     __extends(LogitResponseCurve, _super);
     /**
@@ -175,7 +171,6 @@ var LogitResponseCurve = (function (_super) {
     };
     return LogitResponseCurve;
 }(AbstractResponseCurve));
-exports.LogitResponseCurve = LogitResponseCurve;
 // A response curve mapping a numeric input to a binary output based on
 // whether it's less than or more than the value.
 var BinaryNumericInputResponseCurve = (function (_super) {
@@ -205,4 +200,3 @@ var BinaryNumericInputResponseCurve = (function (_super) {
     };
     return BinaryNumericInputResponseCurve;
 }(AbstractResponseCurve));
-exports.BinaryNumericInputResponseCurve = BinaryNumericInputResponseCurve;

@@ -55,7 +55,6 @@ export type TargetedActionFunction = (state: any, target: any) => void;
 // TargetedAction and a TargetFunction.
 
 type ActionFunction = UntargetedActionFunction | TargetedActionFunction;
-console.log("Hello from action decider");
 class AbstractAction {
     public axes: Axis[];
     public targetedAxes: Axis[];
@@ -155,12 +154,20 @@ interface IActionValue {
     value: number;
 }
 
+interface IActionType {
+    actionFn: ActionFunction;
+    absAction: AbstractAction;
+}
+
 export default class ActionDecider {
-    private actions: Map<ActionFunction, AbstractAction>;
+    private actions: IActionType[];
     constructor() {
-        this.actions = new Map();
+        this.actions = [];
     }
 
+    public findAction(action: ActionFunction): AbstractAction {
+        return this.actions.find((val: IActionType) => val.actionFn === action).absAction;
+    }
     /**
      * Adds an action for potential selection by this
      * ActionDecider. To be considered in
@@ -169,7 +176,7 @@ export default class ActionDecider {
      * @param action The action to be added.
      */
     public addAction(action: UntargetedActionFunction): void {
-        this.actions.set(action, new UntargetedAction(action, []));
+        this.actions.push({actionFn: action, absAction: new UntargetedAction(action, [])});
         // throw new Error("Not implemented!");
     }
     /**
@@ -181,21 +188,21 @@ export default class ActionDecider {
      * @param target A function on state returning an iterable.
      */
     public addTargetedAction(action: TargetedActionFunction, targets: TargetFunction): void {
-        this.actions.set(action, new TargetedAction(action, targets));
+        this.actions.push({actionFn: action, absAction: new TargetedAction(action, targets)});
     }
     /**
      * @returns List of actions added so far.
      */
     public getActions(): ActionFunction[] {
-         const actionArray = Array.from(this.actions.keys());
-         return actionArray;
+
+         return this.actions.map((val: IActionType) => val.actionFn);
     }
     /**
      * Gets the list of axis associated with a particular action.
      * @param action The action to get axis for
      */
     public getAxisForAction(action: ActionFunction): Axis[] {
-        return this.actions.get(action).axes;
+        return this.findAction(action).axes;
     }
     /**
      * Adds an axis for an action.
@@ -207,7 +214,7 @@ export default class ActionDecider {
     public addAxisForAction(action: ActionFunction, get: AxisFunction,
                             curve: AbstractResponseCurve): void {
         const newAxis = new Axis(get, curve);
-        this.actions.get(action).addAxis(newAxis);
+        this.findAction(action).addAxis(newAxis);
     }
     /**
      * Add an axis for a targeted action.
@@ -221,13 +228,13 @@ export default class ActionDecider {
     public addTargetedAxisForAction(action: ActionFunction, get: TargetedAxisFunction,
                                     curve: AbstractResponseCurve): void {
         const newAxis = new Axis(get, curve);
-        if (this.actions.get instanceof UntargetedAction) {
+        if (this.findAction(action) instanceof UntargetedAction) {
             throw new Error("Cannot add targeted axes to untargeted actions");
         }
-        this.actions.get(action).addTargetedAxis(newAxis);
+        this.findAction(action).addTargetedAxis(newAxis);
     }
     public computeUntargetedUtility(state: any, action: UntargetedActionFunction): number {
-        return this.actions.get(action).getUtilities(state)[0].value;
+        return this.findAction(action).getUtilities(state)[0].value;
     }
     // public computeTargetedUtilities(state: any, action: TargetedAction): IActionValue[] {
     //     for (const axis of this.actions.get(action)) { // for targeted action, calculate utility of it in all axis
@@ -237,8 +244,15 @@ export default class ActionDecider {
 
     public getAllActionUtilities(state): IActionValue[] {
         let actionUtilities: IActionValue[] = [];
-        for (const action of this.actions.values()) {
-            actionUtilities = actionUtilities.concat(action.getUtilities(state));
+        // Yes, TSLint. I, too, would like to use a for-of loop.
+        // But unfortunately, SOMEBODY doesn't fucking like for-of loops
+        // on fucking maps. So now i'm fucking suspicious and am going to use
+        // fucking int i = 0 i < length i++ like a fucking plebian
+        // becuase nothing fucking works the way it's supposed to because we're
+        // in fucking crazy javascript land.
+        for (let i = 0; i < this.actions.length; i++) {
+            const val: IActionType = this.actions[i];
+            actionUtilities = actionUtilities.concat(val.absAction.getUtilities(state));
         }
         return actionUtilities;
     }
@@ -299,12 +313,11 @@ export default class ActionDecider {
      *          given target will be returned.
      */
     public decideAction(state: any, random: number = Math.random()): UntargetedActionFunction {
-        if (this.actions.size === 0) {
+        if (this.actions.length === 0) {
             throw new Error("Supply at least one action before calling decideAction");
         }
 
         const sortedListOfActionsByProbability = this.getProbabilities(state);
-        console.log(sortedListOfActionsByProbability);
         let runningSum = 0;
         for (const actionProbability of sortedListOfActionsByProbability) {
             runningSum += actionProbability.value;
