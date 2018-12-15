@@ -1,4 +1,8 @@
-This is a final project for Computational Media 146, Game AI, instructors Daniel Shapiro and Nick Junius.
+This is a final project for Computational Media 146, Game AI, instructor: Daniel Shapiro, TA: Nick Junius.
+
+Check out a web demo at https://ghartman1620.github.io/hlmt-utility-based-ai-decisionmaking/
+
+For response curve visualizations for use in developing software using the system, check out https://ghartman1620.github.io/quick-response-curves/.
 
 Authors:
 Gabe Hartman (ghartman@ucsc.edu, https://github.com/ghartman1620)
@@ -11,29 +15,14 @@ Project proposal: https://docs.google.com/document/d/1NTo5ZZ4PjkuDcKHY03-F2TksJ7
 Project proposal slide:
 https://docs.google.com/presentation/d/1BHjaPnGs3KhQFIwac4AyyVObyA5GWYT3aGt-ySMofcg/edit?usp=sharing
 
+Final Writeup:
 
-Notes to devs -
+This project implements a utility-based action decider based on the architecture of the infinite axis utility system, a system for actors to make decisions probabilistically based on their relative utility, based on a guest lecture by Dave Mark. A version of this talk given at GDC may be found at https://www.gdcvault.com/play/1012410/Improving-AI-Decision-Modeling-Through
 
 To run this software as a new developer:
 1. Have the latest version of npm and node (https://www.npmjs.com/get-npm)
 2. Clone this repo.
 3. run 'npm install' in the root of the repo - this downloads requisite packages locally as described in package-lock.json
-4. Run 'npm test' - this runs the current suite of tests. Take a look at the source in /test to find examples of use of the system in its current state. Continue running this frequently as you develop, because we are good, test-driven developers. Regressions are bad.
-5. In the future, when we have a game demo to use with the system, it will likely be served locally with webpack-dev-server, but for now this the tests are the only output.
+4. Run 'npm test' 
+5. To use the action decider in a non-node project, you can use a bundler if you like, or simply compile it with tsc. We've done the latter for our small, web-based demo for legibility of page source. It needs files src/action-decider.ts and src/response-curve.ts. 
 
-I highly, highly 10/10 recommend using Visual Studio Code, especially for this project. It's got fantastic typescript support (get the typescript and tslint extensions) so it'll have syntax highlighing and linting. Please install both of these extensions.
-
-For a few resources on JS/TS:
-https://nodejs.org/en/docs/ for node js documentation
-
-https://developer.mozilla.org/en-US/docs/Web/JavaScript for browser js documentation
-
-https://www.typescriptlang.org/docs/ for typescript documentation
-
-Of course, google yields all of these results, but if you're just starting out with JS or TS might be worth a few minutes of your time to browse these.
-
-Notes to readers - 
-
-This repo is currently private. Perhaps this is subject to change in the future, but it's easier to start private and go public than vice versa. This does, naturally, make having a "Notes to readers" section kind of moot. 
-
-This project implements the infinite axis utility system, a system for actors to make decisions probabilistically based on their relative utility, based on a guest lecture by Dave Mark. A version of this talk given at GDC may be found at https://www.gdcvault.com/play/1012410/Improving-AI-Decision-Modeling-Through
